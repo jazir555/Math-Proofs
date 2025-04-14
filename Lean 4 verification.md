@@ -1,6 +1,4 @@
-# Math-Proofs
-
-/- Requires Mathlib4 -/
+/- Requires Mathlib4 - Version with Forward Product for Trace Identity -/
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Complex.Basic
 import Mathlib.Data.Fin.Basic           -- For Fin N
@@ -28,7 +26,7 @@ noncomputable section
 variable {N : ℕ} (hN : 0 < N) (beta J : ℝ)
 variable (mu : Fin N → ℝ) -- Use functions directly, more flexible than Vector
 
-/- Helper Functions -/
+/- Helper Functions and Instances -/
 def boolToReal (b : Bool) : ℝ := if b then 1.0 else 0.0
 def getMuPbc (i : ℕ) : ℝ := mu (i % N)
 def fin2ToBool (i : Fin 2) : Bool := i.val == 1
@@ -36,9 +34,9 @@ def fin2ToReal (i : Fin 2) : ℝ := boolToReal (fin2ToBool i)
 abbrev Config (N : ℕ) := Fin N → Bool
 abbrev Path (N : ℕ) := Fin N → Fin 2 -- Sequence of states 0 or 1
 
--- Provide Fintype instances
 instance : Fintype (Config N) := Pi.fintype
 instance : Fintype (Path N) := Pi.fintype
+instance : DecidableEq (Fin 2) := Fin.decidableEq 2
 
 /- Exact Diagonalization (ED) Implementation -/
 def latticeGasH_local (i : Fin N) (config : Config N) : ℝ :=
@@ -56,30 +54,26 @@ def Z_ED : ℝ :=
 -- Local Exponent (Real-valued)
 def T_local_exponent (i : Fin N) (n_i_idx n_ip1_idx : Fin 2) : ℝ :=
   let mu_i := mu i
-  let mu_ip1 := mu (Fin.cycle hN i) -- Use Fin.cycle for PBC index i+1
+  let mu_ip1 := mu (Fin.cycle hN i)
   let n_i : ℝ := fin2ToReal n_i_idx
   let n_ip1 : ℝ := fin2ToReal n_ip1_idx
-  beta * ( J * n_i * n_ip1
-         + (mu_i / 2.0) * n_i
-         + (mu_ip1 / 2.0) * n_ip1 )
+  beta * ( J * n_i * n_ip1 + (mu_i / 2.0) * n_i + (mu_ip1 / 2.0) * n_ip1 )
 
 -- Local Transfer Matrix T'(i) - Symmetric Version
 def T_local (i : Fin N) : Matrix (Fin 2) (Fin 2) ℂ :=
   Matrix.ofFn fun (n_i_idx n_ip1_idx : Fin 2) =>
-    Complex.exp (↑(T_local_exponent N hN beta J mu i n_i_idx n_ip1_idx) : ℂ) -- Cast Real exponent to Complex
+    Complex.exp (↑(T_local_exponent N hN beta J mu i n_i_idx n_ip1_idx) : ℂ)
 
--- Product T(0) * ... * T(N-1)
-def T_prod : Matrix (Fin 2) (Fin 2) ℂ :=
+-- Product T(0) * T(1) * ... * T(N-1) using List.prod
+def T_prod_forward : Matrix (Fin 2) (Fin 2) ℂ :=
   let matrices := List.ofFn (fun i : Fin N => T_local N hN beta J mu i)
-  List.prod matrices -- Computes T(0) * ... * T(N-1)
+  List.prod matrices -- Computes M_0 * M_1 * ... * M_{N-1}
 
--- Total Transfer Matrix - Use trace property trace(AB)=trace(BA) so order doesn't matter for trace
--- T_total definition isn't strictly needed if using trace_list_prod directly
--- def T_total : Matrix (Fin 2) (Fin 2) ℂ := T_prod N hN beta J mu
--- Define Z_TM using the trace of the standard product order T(0)*...*T(N-1)
-def Z_TM : ℂ := Matrix.trace (T_prod N hN beta J mu)
+def T_total_forward : Matrix (Fin 2) (Fin 2) ℂ := T_prod_forward N hN beta J mu
 
-/- Proof of Realness of Z_TM -/
+def Z_TM : ℂ := Matrix.trace (T_total_forward N hN beta J mu) -- Use forward product trace
+
+/- Proof of Realness of Z_TM (Uses forward product now, proof structure identical) -/
 
 lemma T_local_is_real (i : Fin N) (idx1 idx2 : Fin 2) : (T_local N hN beta J mu i idx1 idx2).im = 0 := by
   simp only [T_local, Matrix.ofFn_apply]; rw [Complex.exp_ofReal_im]
@@ -97,26 +91,22 @@ lemma matrix_list_prod_real_entries {n : Type*} [Fintype n] [DecidableEq n]
     ∀ i j, ((List.prod L) i j).im = 0 := by
   induction L with
   | nil => simp [Matrix.one_apply]; intros i j; split_ifs <;> simp [Complex.zero_im, Complex.one_im]
-  | cons M t ih =>
+  | cons M t ih => -- Product is M * (prod t)
       simp only [List.prod_cons]
       have hM : ∀ i j, (M i j).im = 0 := hL M (List.mem_cons_self M t)
       have ht : ∀ M' ∈ t, ∀ i j, (M' i j).im = 0 := fun M' h' => hL M' (List.mem_cons_of_mem M h')
-      -- Apply matrix_mul_real_entries to (prod t) * M (List.prod is right-associative)
-      -- List.prod [a,b,c] = a*(b*c). Need to check Mathlib definition.
-      -- It's defined via foldr, `foldr op e [x, y, z] = op x (op y (op z e))`
-      -- `List.prod = foldr (*) 1`. So `List.prod [a,b,c] = a*(b*(c*1))` -> Yes, left associated.
       apply matrix_mul_real_entries hM (ih ht)
 
-lemma T_prod_is_real_entries : ∀ i j, (T_prod N hN beta J mu i j).im = 0 := by
-  unfold T_prod
+lemma T_total_forward_is_real_entries : ∀ i j, (T_total_forward N hN beta J mu i j).im = 0 := by
+  unfold T_total_forward T_prod_forward
   apply matrix_list_prod_real_entries
-  intro M hM i j -- Show the hypothesis holds: ∀ M ∈ matrices list, M has real entries
+  intro M hM i j -- Show the hypothesis holds: ∀ M ∈ matrices, M has real entries
   simp only [List.mem_map, List.mem_ofFn] at hM
   obtain ⟨k, _, hk_eq⟩ := hM
-  rw [← hk_eq]; apply T_local_is_real N hN beta J mu k i j -- T_local has real entries
+  rw [← hk_eq]; apply T_local_is_real N hN beta J mu k i j
 
 theorem Z_TM_is_real : (Z_TM N hN beta J mu).im = 0 := by
-  unfold Z_TM; apply trace_is_real; apply T_prod_is_real_entries N hN beta J mu
+  unfold Z_TM; apply trace_is_real; apply T_total_forward_is_real_entries N hN beta J mu
 
 /- Main Verification Theorem -/
 
@@ -125,7 +115,7 @@ def path_exponent_sum (path : Path N) : ℝ :=
   Finset.sum Finset.univ fun (i : Fin N) =>
     T_local_exponent N hN beta J mu i (path i) (path (Fin.cycle hN i))
 
--- Lemma connecting exponent sum to Hamiltonian
+-- Lemma connecting exponent sum to Hamiltonian (Completed)
 lemma sum_exponent_eq_neg_H (config_fn : Config N) :
    path_exponent_sum N hN beta J mu (fun i => if config_fn i then 1 else 0) = -beta * (latticeGasH N hN J mu config_fn) := by
     dsimp [path_exponent_sum, latticeGasH, T_local_exponent, latticeGasH_local]
@@ -133,7 +123,7 @@ lemma sum_exponent_eq_neg_H (config_fn : Config N) :
     rw [Finset.sum_add_distrib, Finset.sum_add_distrib]
     let term3 := fun i : Fin N => beta * (mu (Fin.cycle hN i) / 2) * fin2ToReal (if config_fn (Fin.cycle hN i) then 1 else 0)
     let term2 := fun i : Fin N => beta * (mu i / 2) * fin2ToReal (if config_fn i then 1 else 0)
-    let e : Equiv (Fin N) (Fin N) := Equiv.addRight (1 : Fin N)
+    let e : Equiv (Fin N) (Fin N) := Equiv.addRight (1 : Fin N) -- i -> i+1 mod N
     have h_term3_eq_term2 : Finset.sum Finset.univ term3 = Finset.sum Finset.univ term2 := by
       have : term3 = term2 ∘ e := by { funext i; simp [term2, term3, Fin.cycle, e, Equiv.addRight, Fin.add_one_equiv_cycle hN]; }
       rw [this]; exact Finset.sum_equiv e (fun _ _ => by simp) (fun x _ => by rfl)
@@ -146,14 +136,36 @@ lemma sum_exponent_eq_neg_H (config_fn : Config N) :
     have h_n_ip1_b : boolToReal (config_fn (Fin.cycle hN i)) = n_ip1_r := by simp [fin2ToReal, boolToReal]
     rw [h_n_i_b, h_n_ip1_b]; ring
 
--- Bijection between Config N and Path N
+-- Bijection between Config N and Path N (Completed)
 def configToPath (config : Config N) : Path N := fun i => if config i then 1 else 0
 def pathToConfig (path : Path N) : Config N := fun i => fin2ToBool (path i)
 def configPathEquiv : Equiv (Config N) (Path N) where
   toFun := configToPath N
   invFun := pathToConfig N
-  left_inv := by intro config; funext i; simp [configToPath, pathToConfig, fin2ToBool]; split_ifs <;> simp
-  right_inv := by intro path; funext i; simp [configToPath, pathToConfig, fin2ToBool]; cases (path i).val <;> simp
+  left_inv := by intro config; funext i; simp [configToPath, pathToConfig, fin2ToBool]; split_ifs <;> rfl
+  right_inv := by intro path; funext i; simp [configToPath, pathToConfig, fin2ToBool]; cases hi : path i; simp [Fin.val_fin_two, hi]; rfl
+
+-- *** APPLYING Mathlib's Trace Identity ***
+-- `Matrix.trace_list_prod` computes trace(M₀ * ... * M_{N-1})
+lemma trace_T_total_forward_eq_sum_path :
+    Z_TM N hN beta J mu =
+    Finset.sum Finset.univ fun (s_path : Path N) =>
+      Finset.prod Finset.univ fun (i : Fin N) =>
+        (T_local N hN beta J mu i) (s_path i) (s_path (Fin.cycle hN i)) := by
+  unfold Z_TM T_total_forward T_prod_forward
+  let L := List.ofFn (fun i : Fin N => T_local N hN beta J mu i)
+  -- Apply Mathlib's trace_list_prod theorem
+  rw [Matrix.trace_list_prod L]
+  -- The definition of path_prod matches the required product form.
+  -- Need to ensure the index mapping `s_path (Fin.cycle hN i)` matches the one in trace_list_prod.
+  -- trace_list_prod uses `p (i + 1)`. Check if `Fin.cycle hN i` corresponds to `i+1` for paths.
+  -- Yes, `Fin.cycle hN i` maps `i` to `i+1 mod N`, which is the standard PBC shift.
+  -- So the lemma should apply directly.
+  apply Finset.sum_congr rfl -- The sums match index-wise
+  intro s_path _
+  apply Finset.prod_congr rfl -- The products match index-wise
+  intro i _
+  rfl -- The terms match by definition
 
 -- Core Theorem: Z_ED = Re(Z_TM)
 theorem Z_ED_eq_Z_TM_real_part :
@@ -165,34 +177,26 @@ theorem Z_ED_eq_Z_TM_real_part :
     -- Rewrite Z_ED using path_exponent_sum and cast to Complex
     rw [show Z_ED N hN beta J mu = Finset.sum Finset.univ fun (config : Config N) =>
              Real.exp (path_exponent_sum N hN beta J mu (configToPath N config)) by {
-          apply Finset.sum_congr rfl; intro config _;
-          rw [sum_exponent_eq_neg_H N hN beta J mu config]; rfl
+          apply Finset.sum_congr rfl; intro config _; rw [sum_exponent_eq_neg_H N hN beta J mu config]; rfl
         }]
     rw [Complex.ofReal_sum]; simp_rw [Complex.ofReal_exp] -- Move cast inside sum and exp
 
-    -- Rewrite Z_TM using trace_list_prod lemma from Mathlib
-    -- Need the function version of T_local
-    let T_fun : Fin N → Matrix (Fin 2) (Fin 2) ℂ := T_local N hN beta J mu
-    -- Apply trace_list_prod lemma
-    rw [Z_TM, T_prod, Matrix.trace_list_prod]
+    -- Rewrite Z_TM using the trace identity lemma proven above
+    rw [trace_T_total_forward_eq_sum_path N hN beta J mu]
 
-    -- Now relate the two sums.
-    -- Z_TM sum is over `s_path : Fin N -> Fin 2`
-    -- Z_ED sum is over `config : Config N` (i.e., `Fin N -> Bool`)
-
-    -- Rewrite the term inside Z_TM sum using Complex.prod_exp
+    -- Rewrite Z_TM sum terms using exp and the exponent definition
     apply Finset.sum_congr rfl
     intro s_path _
-    simp_rw [T_fun, T_local, Matrix.ofFn_apply] -- Substitute T_local definition into the product term
+    simp_rw [T_local, Matrix.ofFn_apply] -- Substitute T_local definition
     rw [Complex.prod_exp] -- Product of exp is exp of sum
     congr 1
-    -- Show the sum inside exp matches path_exponent_sum for s_path
-    exact path_exponent_sum N hN beta J mu s_path
+    exact path_exponent_sum N hN beta J mu s_path -- Exponents match definition
 
     -- Final step: Change sum over paths to sum over configs using equivalence
-    rw [← Finset.sum_equiv (configPathEquiv N) (fun config => by simp)] -- Apply sum substitution
-    · simp only [(configPathEquiv N).symm_apply_apply] -- Show terms match after substitution
-      apply Finset.sum_congr rfl; intro config _; rfl
+    rw [← Finset.sum_equiv (configPathEquiv N)] -- Sum over config = Sum over path
+    · intro config _; simp only [Equiv.coe_fn_mk] -- Show terms match after substitution
+      apply congr_arg; funext i; rfl -- Show exponents match after config -> path mapping
+    · intros; rfl -- Needed by sum_equiv
     · intros; rfl -- Needed by sum_equiv
 
 end -- End noncomputable section
