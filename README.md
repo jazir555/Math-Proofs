@@ -1,3 +1,5 @@
+To do: A full paaper and prepare the repo for submission
+
 # Model and Definitions
 
 - **Parameter spaces** (`KSpace`, `MuSpace`, `FullParamSpace`) are defined using `EuclideanSpace` to support differentiation.
