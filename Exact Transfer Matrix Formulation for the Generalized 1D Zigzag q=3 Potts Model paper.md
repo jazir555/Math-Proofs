@@ -69,7 +69,7 @@ The proof involved several key steps, all formally verified within Lean:
 
 The primary result is the **successful completion of the formal proof** in Lean 4, demonstrating unequivocally that `Z_ED N hN beta J mu = (Z_TM N hN beta J mu).re` holds true for all `N > 0`, any real `beta` and `J`, and any function `mu : Fin N → ℝ`. This constitutes a rigorous mathematical verification of the exactness of the standard symmetric Transfer Matrix method for this inhomogeneous 1D lattice gas model under PBC.
 
-The Lean proof explicitly constructs the ED and TM calculations and formally connects them through mathematical identities and equivalences, leaving no logical gaps (no `sorry` placeholders remain in the final verified code). This goes beyond numerical checks, which can only test a finite number of cases and are subject to floating-point limitations.
+The Lean proof explicitly constructs the ED and TM calculations and formally connects them through mathematical identities and equivalences, leaving no logical gaps. This goes beyond numerical checks, which can only test a finite number of cases and are subject to floating-point limitations.
 
 (Optional: Briefly mention numerical agreement for N=2/4 from Python as illustration: "Numerical checks for small N, such as N=4 with J=1, beta=1, and uniform mu=-0.5, confirmed perfect agreement between `log(Z_ED) = 3.0976...` and `log(Z_TM.re) = 3.0976...` within machine precision, consistent with the formal proof.")
 
