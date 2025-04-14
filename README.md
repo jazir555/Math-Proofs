@@ -6,4 +6,4 @@ This implementation is valid for any:
 - Site-dependent chemical potentials
 - Periodic boundary conditions
 
-- i will keep working on this and try to get to full generalization
+I will keep working on this and try to get to full generalization
