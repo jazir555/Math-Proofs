@@ -8,4 +8,9 @@ This implementation is valid for any:
 
 But for the standard 1D lattice gas model with site-dependent chemical potential, this proof is complete and mathematically rigorous.
 
-I will keep working on this and try to get to full generalization
+I will keep working on this and try to get to full generalization for:
+
+- Multi-dimensional lattices
+- Other boundary conditions (open, anti-periodic)
+- Beyond-nearest-neighbor interactions
+- Different spin dimensions
