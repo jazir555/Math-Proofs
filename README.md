@@ -1,4 +1,4 @@
-current lean code verifies the theorem described in the paper is correct within the constraints:
+Current lean code verifies the theorem described in the paper is correct within the constraints:
 
 This implementation is valid for any:
 - System size N > 0 
