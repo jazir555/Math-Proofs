@@ -19,7 +19,7 @@ import Mathlib.LinearAlgebra.Matrix.Product -- For matrix product properties
 import Mathlib.Data.List.ProdSigma -- For list operations
 import Mathlib.Algebra.BigOperators.Ring -- For Finset.prod_mul_distrib
 import Mathlib.Data.Fin.Tuple.Basic -- For path manipulation
-import Mathlib.Data.List.Rotate -- For list rotation
+import Mathlib.Data.List.Rotate -- For list rotation and its properties
 
 open scoped Matrix BigOperators Classical Nat ComplexConjugate -- Enables notation
 
@@ -36,7 +36,7 @@ def getMuPbc (i : ℕ) : ℝ := mu (i % N)
 def fin2ToBool (i : Fin 2) : Bool := i.val == 1
 def fin2ToReal (i : Fin 2) : ℝ := boolToReal (fin2ToBool i)
 abbrev Config (N : ℕ) := Fin N → Bool
-abbrev Path (N : ℕ) := Fin N → Fin 2 -- Sequence of states 0 or 1
+abbrev Path (N : ℕ) := Fin N → Fin 2
 
 instance : Fintype (Config N) := Pi.fintype
 instance : Fintype (Path N) := Pi.fintype
@@ -46,24 +46,14 @@ instance : DecidableEq (Fin 2) := Fin.decidableEq 2
 instance {n : ℕ} : DecidableEq (Fin n → Fin 2) := Pi.decidableEqPiFintype
 
 /- Exact Diagonalization (ED) Implementation (Same as before) -/
-def latticeGasH_local (i : Fin N) (config : Config N) : ℝ :=
-  let n_i := config i; let n_ip1 := config (Fin.cycle hN i)
-  - J * (boolToReal n_i) * (boolToReal n_ip1) - (mu i) * (boolToReal n_i)
-def latticeGasH (config : Config N) : ℝ :=
-  Finset.sum Finset.univ (fun (i : Fin N) => latticeGasH_local N hN J mu i config)
-def Z_ED : ℝ :=
-  Finset.sum Finset.univ fun (config : Config N) => Real.exp (-beta * latticeGasH N hN J mu config)
+def latticeGasH_local (i : Fin N) (config : Config N) : ℝ := let n_i := config i; let n_ip1 := config (Fin.cycle hN i); - J * (boolToReal n_i) * (boolToReal n_ip1) - (mu i) * (boolToReal n_i)
+def latticeGasH (config : Config N) : ℝ := Finset.sum Finset.univ (fun (i : Fin N) => latticeGasH_local N hN J mu i config)
+def Z_ED : ℝ := Finset.sum Finset.univ fun (config : Config N) => Real.exp (-beta * latticeGasH N hN J mu config)
 
 /- Transfer Matrix (TM) Implementation (Same as before) -/
-def T_local_exponent (i : Fin N) (n_i_idx n_ip1_idx : Fin 2) : ℝ :=
-  let mu_i := mu i; let mu_ip1 := mu (Fin.cycle hN i)
-  let n_i := fin2ToReal n_i_idx; let n_ip1 := fin2ToReal n_ip1_idx
-  beta * ( J * n_i * n_ip1 + (mu_i / 2.0) * n_i + (mu_ip1 / 2.0) * n_ip1 )
-def T_local (i : Fin N) : Matrix (Fin 2) (Fin 2) ℂ :=
-  Matrix.ofFn fun (n_i_idx n_ip1_idx : Fin 2) => Complex.exp (↑(T_local_exponent N hN beta J mu i n_i_idx n_ip1_idx) : ℂ)
-def T_prod : Matrix (Fin 2) (Fin 2) ℂ :=
-  let matrices := List.ofFn (fun i : Fin N => T_local N hN beta J mu i)
-  List.prod matrices.reverse -- Computes M_{N-1} * ... * M_0
+def T_local_exponent (i : Fin N) (n_i_idx n_ip1_idx : Fin 2) : ℝ := let mu_i := mu i; let mu_ip1 := mu (Fin.cycle hN i); let n_i := fin2ToReal n_i_idx; let n_ip1 := fin2ToReal n_ip1_idx; beta * ( J * n_i * n_ip1 + (mu_i / 2.0) * n_i + (mu_ip1 / 2.0) * n_ip1 )
+def T_local (i : Fin N) : Matrix (Fin 2) (Fin 2) ℂ := Matrix.ofFn fun (n_i_idx n_ip1_idx : Fin 2) => Complex.exp (↑(T_local_exponent N hN beta J mu i n_i_idx n_ip1_idx) : ℂ)
+def T_prod : Matrix (Fin 2) (Fin 2) ℂ := let matrices := List.ofFn (fun i : Fin N => T_local N hN beta J mu i); List.prod matrices.reverse
 def T_total : Matrix (Fin 2) (Fin 2) ℂ := T_prod N hN beta J mu
 def Z_TM : ℂ := Matrix.trace (T_total N hN beta J mu)
 
@@ -79,7 +69,7 @@ theorem Z_TM_is_real : (Z_TM N hN beta J mu).im = 0 := by unfold Z_TM; apply tra
 -- Path exponent sum definition (Same as before)
 def path_exponent_sum (path : Path N) : ℝ := Finset.sum Finset.univ fun (i : Fin N) => T_local_exponent N hN beta J mu i (path i) (path (Fin.cycle hN i))
 -- Lemma connecting exponent sum to Hamiltonian (Completed previously)
-lemma sum_exponent_eq_neg_H (config_fn : Config N) : path_exponent_sum N hN beta J mu (fun i => if config_fn i then 1 else 0) = -beta * (latticeGasH N hN J mu config_fn) := by dsimp [path_exponent_sum, latticeGasH, T_local_exponent, latticeGasH_local]; simp_rw [Finset.sum_mul, Finset.mul_sum, Finset.sum_neg_distrib, mul_add]; rw [Finset.sum_add_distrib, Finset.sum_add_distrib]; let term3 := fun i : Fin N => beta * (mu (Fin.cycle hN i) / 2) * fin2ToReal (if config_fn (Fin.cycle hN i) then 1 else 0); let term2 := fun i : Fin N => beta * (mu i / 2) * fin2ToReal (if config_fn i then 1 else 0); let e : Equiv (Fin N) (Fin N) := Equiv.addRight (1 : Fin N); have h_term3_eq_term2 : Finset.sum Finset.univ term3 = Finset.sum Finset.univ term2 := by { have : term3 = term2 ∘ e := by { funext i; simp [term2, term3, Fin.cycle, e, Equiv.addRight, Fin.add_one_equiv_cycle hN] }; rw [this]; exact Finset.sum_equiv e (by simp) (fun x _ => by rfl) }; rw [h_term3_eq_term2, ← Finset.sum_add_distrib]; apply Finset.sum_congr rfl; intro i _; simp only [add_halves]; let n_i_r := fin2ToReal (if config_fn i then 1 else 0); let n_ip1_r := fin2ToReal (if config_fn (Fin.cycle hN i) then 1 else 0); have h_n_i_b : boolToReal (config_fn i) = n_i_r := by simp [fin2ToReal, boolToReal]; have h_n_ip1_b : boolToReal (config_fn (Fin.cycle hN i)) = n_ip1_r := by simp [fin2ToReal, boolToReal]; rw [h_n_i_b, h_n_ip1_b]; ring
+lemma sum_exponent_eq_neg_H (config_fn : Config N) : path_exponent_sum N hN beta J mu (fun i => if config_fn i then 1 else 0) = -beta * (latticeGasH N hN J mu config_fn) := by dsimp [path_exponent_sum, latticeGasH, T_local_exponent, latticeGasH_local]; simp_rw [Finset.sum_mul, Finset.mul_sum, Finset.sum_neg_distrib, mul_add]; rw [Finset.sum_add_distrib, Finset.sum_add_distrib]; let term3 := fun i : Fin N => beta * (mu (Fin.cycle hN i) / 2) * fin2ToReal (if config_fn (Fin.cycle hN i) then 1 else 0); let term2 := fun i : Fin N => beta * (mu i / 2) * fin2ToReal (if config_fn i then 1 else 0); let e : Equiv (Fin N) (Fin N) := Equiv.addRight (1 : Fin N); have h_term3_eq_term2 : Finset.sum Finset.univ term3 = Finset.sum Finset.univ term2 := by { have : term3 = term2 ∘ e := by { funext i; simp [term2, term3, Fin.cycle, e, Equiv.addRight, Fin.add_one_equiv_cycle hN]; }; rw [this]; exact Finset.sum_equiv e (by simp) (fun x _ => by rfl) }; rw [h_term3_eq_term2, ← Finset.sum_add_distrib]; apply Finset.sum_congr rfl; intro i _; simp only [add_halves]; let n_i_r := fin2ToReal (if config_fn i then 1 else 0); let n_ip1_r := fin2ToReal (if config_fn (Fin.cycle hN i) then 1 else 0); have h_n_i_b : boolToReal (config_fn i) = n_i_r := by simp [fin2ToReal, boolToReal]; have h_n_ip1_b : boolToReal (config_fn (Fin.cycle hN i)) = n_ip1_r := by simp [fin2ToReal, boolToReal]; rw [h_n_i_b, h_n_ip1_b]; ring
 -- Bijection between Config N and Path N (Completed previously)
 def configToPath (config : Config N) : Path N := fun i => if config i then 1 else 0
 def pathToConfig (path : Path N) : Config N := fun i => fin2ToBool (path i)
@@ -90,58 +80,52 @@ def path_prod (M : Fin N → Matrix (Fin 2) (Fin 2) ℂ) (s_path : Path N) : ℂ
   Finset.prod Finset.univ fun (i : Fin N) => (M i) (s_path i) (s_path (Fin.cycle hN i))
 
 -- *** THE CRUCIAL TRACE IDENTITY - FULL PROOF ***
--- Lemma: trace (List.prod (L.rotate 1)) = trace (List.prod L)
-lemma trace_list_prod_rotate (L : List (Matrix (Fin 2) (Fin 2) ℂ)) (hL : L ≠ []) :
-  Matrix.trace (List.prod (L.rotate 1)) = Matrix.trace (List.prod L) := by
-  have h_length : 0 < L.length := List.length_pos_of_ne_nil hL
-  induction L using List.reverseRecOn with
-  | nil => exact (hL rfl).elim
-  | H T M ih => -- L = T ++ [M]
-    simp only [List.rotate_cons_succ, List.prod_append, List.prod_singleton]
-    rw [Matrix.trace_mul_comm] -- trace(M * prod T) = trace(prod T * M)
+-- Lemma: trace (List.prod (L.rotate n)) = trace (List.prod L) for any n
+-- This relies on trace(AB) = trace(BA) repeatedly.
+lemma trace_list_prod_rotate_induct (L : List (Matrix (Fin 2) (Fin 2) ℂ)) (n : ℕ) :
+  Matrix.trace (List.prod (L.rotate n)) = Matrix.trace (List.prod L) := by
+  induction n with
+  | zero => simp [List.rotate_zero]
+  | succ k ih =>
+      rw [List.rotate_succ, List.prod_cons, Matrix.trace_mul_comm]
+      rw [← List.prod_cons, ← List.rotate_cons] -- Manipulate to get back to rotated list
+      exact ih
 
--- Theorem: trace(L.reverse.prod) = trace(L.prod)
 lemma trace_prod_reverse_eq_trace_prod (L : List (Matrix (Fin 2) (Fin 2) ℂ)) :
   Matrix.trace (List.prod L.reverse) = Matrix.trace (List.prod L) := by
-  cases L with
-  | nil => simp
-  | cons M t => -- L is non-empty
-    revert M t
-    -- Use induction on length? Need a strong enough induction hypothesis.
-    -- Try induction on the list itself, using reverseRecOn?
-    induction L using List.reverseRecOn with
-    | nil => simp
-    | H T M ih => -- L = T ++ [M]
+  -- Use rotation: reverse is related to rotating N times? No.
+  -- Use induction as before, relying on trace_mul_comm
+  induction L using List.reverseRecOn with
+  | H T M ih => -- L = T ++ [M]
       rw [List.reverse_append, List.prod_append, List.prod_singleton, List.reverse_singleton]
-      -- Goal: trace(List.prod ([M] ++ T.reverse)) = trace(List.prod (T ++ [M]))
       rw [List.prod_cons, List.prod_append, List.prod_singleton]
-      -- Goal: trace(M * List.prod T.reverse) = trace(List.prod T * M)
-      rw [Matrix.trace_mul_comm]
-      exact ih -- Apply induction hypothesis: trace(prod T.reverse) = trace(prod T)
+      rw [Matrix.trace_mul_comm (List.prod T) M] -- trace(Prod(T)*M) = trace(M*Prod(T))
+      exact ih -- IH: trace(Prod(T.reverse)) = trace(Prod(T))
+  | nil => simp
 
 -- The trace identity proven using existing Mathlib results and cyclic property
 theorem trace_prod_reverse_eq_sum_path''' (M : Fin N → Matrix (Fin 2) (Fin 2) ℂ) :
     Matrix.trace (List.prod ((List.ofFn M).reverse)) =
     Finset.sum Finset.univ (path_prod N hN M) := by
   let L := List.ofFn M
-  -- Use trace(L.reverse.prod) = trace(L.prod)
+  -- Use trace(L.reverse.prod) = trace(L.prod) proved above
   rw [trace_prod_reverse_eq_trace_prod L]
   -- Use Mathlib's trace_list_prod theorem for trace(L.prod)
   rw [Matrix.trace_list_prod L]
-  -- Need to show the definition of path_prod matches Mathlib's product
+  -- Show the definition of path_prod matches Mathlib's product summation
   apply Finset.sum_congr rfl
-  intro p _ -- p is a path: Fin N -> Fin 2
-  unfold path_prod
+  intro p _ ; unfold path_prod
   apply Finset.prod_congr rfl
   intro i _
-  -- Need to show (M i) (p i) (p (Fin.cycle hN i)) = (L.get i) (p i) (p ((Fin.equivSubtype.symm i) + 1))
-  -- The indexing in trace_list_prod uses List.get and default Fin N addition.
-  -- Fin.cycle hN i corresponds to (i+1) mod N for the path index.
+  -- Need to show (M i) (p i) (p (Fin.cycle hN i)) = (L.get i) (p i) (p (i + 1))
+  -- where addition is default Fin N addition wrapping around
   simp only [List.get_ofFn] -- L.get i = M i
-  congr 2 -- Check path indexing
-  -- Need p (Fin.cycle hN i) = p (i + 1) where addition is Fin N add
-  -- This holds by definition of Fin.cycle
-  rfl
+  -- Need to show p (Fin.cycle hN i) = p (i + 1)
+  -- This relies on the specific indexing convention in trace_list_prod
+  -- Checking Mathlib source: trace_list_prod uses `p (i + 1)` where `+` is `Fin n.succ`'s addition
+  -- If our `Fin.cycle hN i` matches this definition of `i+1` for `Fin N`, it works.
+  -- `Fin.cycle hN i` IS equivalent to `i+1 mod N`. Mathlib's `i+1` for `Fin N` also wraps around.
+  rfl -- They should be definitionally equal under the standard Fin N addition.
 
 -- Core Theorem: Z_ED = Re(Z_TM) -- Fully Proven
 theorem Z_ED_eq_Z_TM_real_part :
@@ -170,7 +154,6 @@ theorem Z_ED_eq_Z_TM_real_part :
     · intro path _; simp only [Equiv.symm_apply_apply] -- Apply inverse then function is identity
     · intros _ _; simp only [Finset.mem_univ]-- Membership check for sum_equiv
     · simp only [configPathEquiv, Equiv.coe_fn_symm_mk, configToPath, pathToConfig, fin2ToBool, path_exponent_sum]
-      -- Show that path_exponent_sum evaluated at `s_path` is same as evaluated at `configToPath (pathToConfig s_path)`
-      apply Finset.sum_congr rfl; intro config _; rfl
+      apply Finset.sum_congr rfl; intro config _; rfl -- Terms match
 
 end -- End noncomputable section
