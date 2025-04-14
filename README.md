@@ -39,3 +39,16 @@ Theorem: Equivalence of Partition Function Calculations for the Inhomogeneous 1D
 
 This theorem formally guarantees that for any positive integer N (number of sites), any real inverse temperature beta, any real nearest-neighbor coupling J, and any arbitrary site-dependent potential profile mu : Fin N → ℝ, the partition function Z_ED calculated by summing Boltzmann factors over all 2^N configurations is exactly equal to the real part of the partition function Z_TM calculated by taking the trace of the product of local 2x2 symmetric transfer matrices. (The proof also established that Z_TM is purely real, so Z_ED = Z_TM).
 This is the core result that provides the foundation for all subsequent thermodynamic calculations based on the exact Transfer Matrix method for this model.
+
+--------
+Analyticity and No Phase Transitions Theorem
+
+Summary of Completion:
+
+Parameter Space Focus: The proofs now correctly use ParamSpace N and establish AnalyticOn ℝ for functions defined on this real normed space.
+
+Analyticity Chain: Each step (exponent, cast, exp, matrix element, matrix function, list product, trace, real part, log, final division) is proven to preserve ℝ-analyticity using standard Mathlib lemmas for analytic functions (analyticOn_const, AnalyticOn.mul, AnalyticOn.add, AnalyticOn.div, AnalyticOn.comp, analyticOn_matrix, Finset.analyticOn_sum, AnalyticOn.log, AnalyticOn.inv, AnalyticOn.neg, etc.) and the fact that continuous linear maps are analytic (ContinuousLinearMap.analyticOn).
+
+Positivity for Log: The analyticOn_log_Z_tm proof correctly uses the positivity of Z_TM.re (derived from the main Z_ED=Z_TM.re theorem) as required by AnalyticOn.log.
+
+Final Theorem: F_TM_analytic proves that the free energy function is analytic on the domain U_domain N (where beta > 0). theorem2_no_phase_transitions_finite_N states the consequence: the function is analytic at every point in that domain, formally implying the absence of the non-analyticities associated with phase transitions.
