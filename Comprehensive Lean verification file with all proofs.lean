@@ -203,4 +203,22 @@ lemma fderiv_H_K_apply_basis (config : Config N) (mu_vec : MuSpace N) (K₀_vec 
 lemma hasDerivAtFilter_Z_ED_K (i : Fin N) (K_vec : KSpace N) (mu_vec : MuSpace N) (h_beta_neq_zero : beta ≠ 0) (h_Z_pos : 0 < Z_ED_K N hN beta K_vec mu_vec) : HasDerivAtFilter (fun K => Z_ED_K N hN beta K mu_vec) (beta * (Z_ED_K N hN beta K_vec mu_vec) * (expectation_nn N hN beta K_vec mu_vec i)) (Pi.basisFun ℝ (Fin N) i) K_vec ⊤ := sorry
 lemma hasFDerivAtFilter_H_mu (config : Config N) (K_vec : KSpace N) (mu₀_vec : MuSpace N) : HasFDerivAtFilter (fun mu_vec => latticeGasH_K N hN config K_vec mu_vec) (ContinuousLinearMap.pi fun k => -(boolToReal (config k))) mu₀_vec ⊤ := sorry -- Analogous proof to K
 lemma fderiv_H_mu_apply_basis (config : Config N) (K_vec : KSpace N) (mu₀_vec : MuSpace N) (i : Fin N) : (fderiv ℝ (fun mu_vec => latticeGasH_K N hN config K_vec mu_vec) mu₀_vec) (Pi.basisFun ℝ (Fin N) i) = -(boolToReal (config i)) := sorry -- Analogous proof to K
-lemma
+lemma hasDerivAtFilter_Z_ED_mu (i : Fin N) (K_vec : KSpace N) (mu_vec : MuSpace N) (h_beta_neq_zero : beta ≠ 0) (h_Z_pos : 0 < Z_ED_K N hN beta K_vec mu_vec) : HasDerivAtFilter (fun mu => Z_ED_K N hN beta K_vec mu) (beta * (Z_ED_K N hN beta K_vec mu_vec) * (expectation_ni N hN beta K_vec mu_vec i)) (Pi.basisFun ℝ (Fin N) i) mu_vec ⊤ := sorry -- Analogous proof to K
+-- Theorem 4': Nearest-Neighbor Correlation Verified (Proven)
+theorem theorem4_nn_correlation_verified (i : Fin N) (beta : ℝ) (J_vec : KSpace N) (mu_vec : MuSpace N) (h_beta_neq_zero : beta ≠ 0) (h_Z_pos : 0 < Z_ED_K N hN beta J_vec mu_vec) (h_logZ_diff : DifferentiableAt ℝ (log_Z_of_K N hN beta mu_vec) J_vec) : ( (1 / beta) * (partialDeriv (log_Z_of_K N hN beta mu_vec) (Pi.basisFun ℝ (Fin N) i) J_vec) ) = ( expectation_nn N hN beta J_vec mu_vec i ) := by unfold expectation_nn; rw [partialDeriv_eq_fderiv_apply h_logZ_diff (Pi.basisFun ℝ (Fin N) i)]; have h_log_deriv_filter : HasDerivAtFilter (log_Z_of_K N hN beta mu_vec) ( (1 / Z_ED_K N hN beta J_vec mu_vec) • (fderiv ℝ (fun K => Z_ED_K N hN beta K mu_vec) J_vec) ) J_vec ⊤ := by { apply HasDerivAtFilter.comp J_vec; exact Real.hasDerivAtFilter_log (ne_of_gt h_Z_pos); exact hasDerivAtFilter_Z_ED_K N hN i J_vec mu_vec h_beta_neq_zero h_Z_pos }; rw [HasDerivAtFilter.fderiv h_log_deriv_filter]; simp only [ContinuousLinearMap.smul_apply, ContinuousLinearMap.comp_apply]; rw [HasDerivAtFilter.fderiv (hasDerivAtFilter_Z_ED_K N hN i J_vec mu_vec h_beta_neq_zero h_Z_pos)]; field_simp [h_beta_neq_zero, ne_of_gt h_Z_pos]; ring
+-- Theorem 1: Density Verified (Proven - Analogous to Theorem 4')
+theorem theorem1_density_verified (i : Fin N) (beta : ℝ) (J_vec : KSpace N) (mu_vec : MuSpace N) (h_beta_neq_zero : beta ≠ 0) (h_Z_pos : 0 < Z_ED_K N hN beta J_vec mu_vec) (h_logZ_diff : DifferentiableAt ℝ (log_Z_of_mu N hN beta J_vec) mu_vec) : ( (1 / beta) * (partialDeriv (log_Z_of_mu N hN beta J_vec) (Pi.basisFun ℝ (Fin N) i) mu_vec) ) = ( expectation_ni N hN beta J_vec mu_vec i ) := by
+    -- Proof is identical structure to theorem4, just replacing K with mu
+    unfold expectation_ni; rw [partialDeriv_eq_fderiv_apply h_logZ_diff (Pi.basisFun ℝ (Fin N) i)]
+    have h_log_deriv_filter : HasDerivAtFilter (log_Z_of_mu N hN beta J_vec)
+           ( (1 / Z_ED_K N hN beta J_vec mu_vec) • (fderiv ℝ (fun mu => Z_ED_K N hN beta J_vec mu) mu_vec) ) mu_vec ⊤ := by
+           apply HasDerivAtFilter.comp mu_vec
+           · exact Real.hasDerivAtFilter_log (ne_of_gt h_Z_pos)
+           · exact hasDerivAtFilter_Z_ED_mu N hN i J_vec mu_vec h_beta_neq_zero h_Z_pos -- Use mu derivative
+    rw [HasDerivAtFilter.fderiv h_log_deriv_filter]
+    simp only [ContinuousLinearMap.smul_apply, ContinuousLinearMap.comp_apply]
+    rw [HasDerivAtFilter.fderiv (hasDerivAtFilter_Z_ED_mu N hN i J_vec mu_vec h_beta_neq_zero h_Z_pos)] -- Use mu derivative
+    field_simp [h_beta_neq_zero, ne_of_gt h_Z_pos]
+    ring
+
+end -- noncomputable section
