@@ -31,3 +31,11 @@ Optimized 1D Sensors/Responders: We can exactly calculate the full susceptibilit
 Benchmarking: Provides an exact, reliable benchmark for validating approximate methods (like density functional theory variants, mean-field theories, or machine learning models) used to study disorder or inhomogeneity effects in more complex systems.
 
 Increased Confidence in Analogical Reasoning: While this specific model (1D classical lattice gas) is simple, the formal verification of the method's ability to handle arbitrary inhomogeneity exactly lends much greater confidence when applying similar methodologies (like DMRG for quantum chains) to study related phenomena (like stripes or defects in quantum materials) where formal proofs are intractable. We've shown the core computational structure works perfectly in a verifiable case.
+
+
+-----
+
+Theorem: Equivalence of Partition Function Calculations for the Inhomogeneous 1D Lattice Gas with Periodic Boundary Conditions
+
+This theorem formally guarantees that for any positive integer N (number of sites), any real inverse temperature beta, any real nearest-neighbor coupling J, and any arbitrary site-dependent potential profile mu : Fin N → ℝ, the partition function Z_ED calculated by summing Boltzmann factors over all 2^N configurations is exactly equal to the real part of the partition function Z_TM calculated by taking the trace of the product of local 2x2 symmetric transfer matrices. (The proof also established that Z_TM is purely real, so Z_ED = Z_TM).
+This is the core result that provides the foundation for all subsequent thermodynamic calculations based on the exact Transfer Matrix method for this model.
