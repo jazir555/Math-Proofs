@@ -4,6 +4,6 @@ This implementation is valid for any:
 - System size N > 0 
 - Arbitrary coupling strength J
 - Site-dependent chemical potentials
-- Periodic boundary conditions-------
+- Periodic boundary conditions
 
 - i will keep working on this and try to get to full generalization
