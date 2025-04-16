@@ -1,3 +1,19 @@
+## Readme
+
+Math Proofs generated with Gemini 2.5 Pro in Lean 4, which is a formal proof verification assistant:
+
+https://en.wikipedia.org/wiki/Lean_(proof_assistant)
+
+Once these build, these are definitively proven and exact formalizations. These problems are "solved". This repo is based off the paper by Weiguo Yin:
+
+https://arxiv.org/pdf/2503.23758
+
+Everything currently in this repo follows from his formula. I have generalized his formula to all Inhomogenius 1D lattice gasses, not just the frustrated Pott's model, every 1D inhomogenius lattice gasses.
+
+
+--------------
+
+
 To do: A full paaper and prepare the repo for submission
 
 ## Formal Verification of the Transfer Matrix Method and Derived Properties for the Inhomogeneous 1D Lattice Gas with Periodic Boundary Conditions
