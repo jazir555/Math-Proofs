@@ -38,6 +38,9 @@ import Mathlib.Analysis.InnerProductSpace.Basic -- For inner product
 import Mathlib.Topology.Algebra.InfiniteSum -- For Summable / HasSum
 import Mathlib.Analysis.InnerProductSpace.Spectrum -- For eigenvalues/spectrum?
 import Mathlib.Data.NNReal -- For NNReal
+import Mathlib.Analysis.NormedSpace.Operator.Adjoint -- For adjoint
+import Mathlib.Analysis.InnerProductSpace.Positive -- For positive operators
+
 
 open scoped Matrix BigOperators Classical Nat ComplexConjugate ENNReal NNReal -- Enables notation
 
@@ -95,51 +98,68 @@ instance QuantumFiniteDimTraceSpace {n : ℕ} {H : Type}
   integrate f _ := f Unit.unit -- Requires f() to compute the trace
 
 
+/-- Placeholder for the positive square root of a positive operator. Needs Functional Calculus. -/
+noncomputable def op_sqrt {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
+    (A : ContinuousLinearMap ℂ H H) (hA : IsSelfAdjoint A) (hA_pos : ∀ x, 0 ≤ Complex.re (inner (A x) x)) :
+    ContinuousLinearMap ℂ H H :=
+  sorry -- Requires functional calculus for operators
+
 /-- Placeholder for the absolute value operator |A| = sqrt(A* A). -/
 @[nolint unusedArguments] -- H is needed for context, A is the input
 noncomputable def op_abs {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (A : ContinuousLinearMap ℂ H H) : ContinuousLinearMap ℂ H H :=
-  -- Mathematical Definition: Requires sqrt(adjoint A * A) via functional calculus
-  -- or spectral theorem for positive operators. This requires A*A to be positive.
-  -- Full formalization is complex.
-  sorry
+  -- Mathematical Definition: sqrt(adjoint A * A)
+  let AadjA := (ContinuousLinearMap.adjoint A) * A
+  have h_adj : IsSelfAdjoint AadjA := ContinuousLinearMap.isSelfAdjoint_adjoint_mul_self A
+  have h_pos_re : ∀ x, 0 ≤ Complex.re (inner (AadjA x) x) := fun x => by
+      rw [ContinuousLinearMap.mul_apply, ContinuousLinearMap.adjoint_inner_left, ← Complex.inner_self_re]
+      apply sq_nonneg
+  -- The actual sqrt operation requires functional calculus
+  op_sqrt AadjA h_adj h_pos_re
+
 
 /-- Placeholder for singular values of an operator -/
 @[nolint unusedArguments] -- H, A needed for context
 def singular_values {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (A : ContinuousLinearMap ℂ H H) : Type := ℕ → NNReal -- Type representing the sequence
 
+-- Placeholder for eigenvalues/spectrum of a self-adjoint operator
+@[nolint unusedArguments]
+noncomputable def op_spectrum_eigenvalues {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
+    (A : ContinuousLinearMap ℂ H H) (hA : IsSelfAdjoint A) : ℕ → ℝ :=
+  -- Requires spectral theorem formalization
+  sorry
+
 -- Function to compute the singular values (remains sorry)
 @[nolint unusedArguments]
 noncomputable def compute_singular_values {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (A : ContinuousLinearMap ℂ H H) : singular_values A :=
-  -- Typically involves finding eigenvalues of |A| = op_abs A. Requires op_abs and spectral theory.
-  sorry
+  -- Singular values are eigenvalues of |A| = op_abs A.
+  -- Need proof that |A| is self-adjoint.
+  let absA := op_abs A
+  have h_absA_sa : IsSelfAdjoint absA := sorry -- Requires proof based on op_sqrt/func calc properties
+  let eigenvalues := op_spectrum_eigenvalues absA h_absA_sa
+  -- Need proof that eigenvalues of |A| are non-negative
+  fun n => Real.toNNReal (eigenvalues n)
 
 
 /-- Define a proposition for the Trace Class condition (placeholder). -/
-/--! ***** SORRY FILLED HERE (1/3) *****
-    Removing final `sorry : Prop` as Summable s is the core condition. -/
 def IsTraceClass {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (A : ContinuousLinearMap ℂ H H) : Prop :=
   -- Definition: A is trace class if Sum_k s_k converges,
   -- where s_k are the singular values of A (eigenvalues of |A| = sqrt(A* A)).
-  -- This requires defining singular_values and checking summability.
   let s : singular_values A := compute_singular_values A -- s defined via sorry'd func
   Summable s -- Check if the sequence `s` (whose values are sorry) is summable
 
 
 /-- Placeholder function for infinite dimensional trace. Returns Option ℂ. -/
-/--! ***** SORRY FILLED HERE (2/3) *****
-    Computation of trace value (if IsTraceClass holds) replaced with placeholder 0. -/
 noncomputable def op_trace_infinite_dim {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (A : ContinuousLinearMap ℂ H H) : Option ℂ :=
   -- This relies on the IsTraceClass property being correctly defined and proven.
   if h : IsTraceClass A then
      -- If A is trace class, compute its trace: Sum <e_k, A e_k> over any ONB.
      -- The actual computation (summation) requires proof of convergence and value.
-     -- Replacing the 'sorry' computation with placeholder 0.
-     some (0 : ℂ)
+     some (sorry : ℂ) -- Retained sorry for actual trace computation value
   else
     -- Otherwise, the trace is undefined
     none
@@ -194,9 +214,7 @@ def AbstractEquivalenceAssertion (model : StatMechModel') : Prop :=
     -- This equality check needs care depending on WeightValueType
     ∃ z_ed_val, model.Z_ED_Calculation = z_ed_val ∧ ∃ z_alt_val, Option.get h_alt_exists = z_alt_val ∧ z_ed_val = z_alt_val -- Placeholder equality
 
-/-- Predicate capturing conditions needed for the specific equivalence proof. -/
-/--! ***** SORRY FILLED HERE (3/3) *****
-    Allowing OpenFree boundary condition, assuming its equivalence will be proven. -/
+-- Predicate capturing conditions needed for the specific equivalence proof
 def ConditionsForEquivalence (isClassical isQuantum isDiscreteConfig : Prop) (interaction : Type) (boundary : Type) -- Add more properties
     : Prop :=
       if isQuantum then false
@@ -349,7 +367,7 @@ def Quantum_Model_Infinite_Dim (H : Type)
   EnergyValueType := ContinuousLinearMap ℂ H H; Hamiltonian := fun _ => OpH
   WeightValueType := Option ℂ; weightMonoid := inferInstance; StateSpace := QuantumInfiniteDimTraceSpace
   WeightFunction := fun Op params => op_trace_infinite_dim (op_exp (-params.beta • Op)) -- Uses op_trace_infinite_dim
-  Z_ED_Integrable := IsTraceClass (op_exp (-beta • OpH)) -- Uses the abstract Prop IsTraceClass
+  Z_ED_Integrable := IsTraceClass (op_exp (-beta • OpH)) -- Uses the Prop IsTraceClass
   calculateZ_Alternative := none; IsClassical := false; IsQuantum := true
   IsDiscreteConfig := false; IsContinuousConfig := true; HasFiniteStates := false
   InteractionType := h_interaction_type; BoundaryCondition := h_boundary_cond
@@ -380,38 +398,31 @@ lemma sum_all_elements_list_prod_eq_sum_path
     let n := N - 1
     let matrices := List.ofFn fun i : Fin n => T_local i
     -- Proof by induction on n (length of matrices = number of steps)
-    induction n with
-    | zero => -- N=1. matrices=[]. prod=Id.
+    induction n using Nat.case_strong_induction_on with
+    | hz => -- N=1. matrices=[]. prod=Id.
         simp only [List.length_ofFn, List.prod_nil, Matrix.one_apply, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
         simp only [Nat.zero_eq, Finset.range_zero, Finset.prod_empty]
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_pi, Fintype.card_fin]
         simp
-    | succ k ih => -- N=k+2. matrices = T0 :: T1 :: ... :: Tk. length k+1.
+    | hi k ih => -- N=k+2. matrices = T0 :: T1 :: ... :: Tk. length k+1.
         let T0 := T_local 0
         let rest_matrices := List.ofFn (fun i : Fin k => T_local (Fin.succ i))
         have h_len_rest : rest_matrices.length = k := by simp only [List.length_ofFn]
         let T_rest_prod := List.prod rest_matrices
-        -- Need IH applied to rest_matrices (length k)
-        -- Requires N > 1, so N-1=k+1 > 0, so k>=0 which is true.
         let hNk1 : k+1 > 0 := Nat.succ_pos k
-        let hNk1_eq_km1p1 := rfl -- k = (k-1)+1
-        -- We need to adapt N for the IH. Let N' = k+1. hN0' = hNk1.
-        -- T_local' = fun i : Fin k => T_local (Fin.succ i)
-        have ih' := ih hNk1 (fun i : Fin k => T_local (Fin.succ i)) -- Apply IH
-        -- Expand LHS for N=k+2
-        simp_rw [List.ofFn_succ, List.prod_cons, Matrix.sum_apply, Finset.sum_sum_type, Matrix.mul_apply, Finset.sum_product]
-        rw [Finset.sum_comm] -- Sum over s1 first
-        apply Finset.sum_congr rfl
-        intro s1
-        rw [Finset.sum_comm] -- Sum over skp1 first
-        rw [← Finset.sum_mul] -- Pull out T0(s0, s1)
-        -- Need Sum_{skp1} T_rest_prod(s1, skp1)
-        -- Let's rewrite IH based on its RHS structure:
-        -- ih' : Sum_{s1, skp1} T_rest_prod s1 skp1 = Sum_{p':Fin(k+1)} Prod_{j=0..k-1} ...
-        -- This doesn't directly give Sum_{skp1} T_rest_prod(s1, skp1).
-        -- The required identity seems more complex than initially assumed.
-        sorry -- Retained: Inductive step logic requires further lemmas/reformulation.
+        have ih' := ih k (Nat.lt_succ_self k) (fun i : Fin k => T_local (Fin.succ i)) h_len_rest -- Apply IH
+        -- Expand LHS for N=k+2 (n=k+1)
+        calc Finset.sum Finset.univ (fun s0 => Finset.sum Finset.univ fun skp1 => (List.prod (T0 :: rest_matrices)) s0 skp1)
+             = ∑ s0, ∑ skp1, ∑ s1, T0 s0 s1 * T_rest_prod s1 skp1 := by simp [List.prod_cons, Matrix.mul_apply, Finset.sum_sum_type, Finset.sum_product]
+           _ = ∑ s1, ∑ s0, ∑ skp1, T0 s0 s1 * T_rest_prod s1 skp1 := by rw [Finset.sum_comm]; apply Finset.sum_congr rfl; intro; rw [Finset.sum_comm]
+           _ = ∑ s1, ∑ s0, T0 s0 s1 * (∑ skp1, T_rest_prod s1 skp1) := by apply Finset.sum_congr rfl; intro; rw [← Finset.sum_mul]; apply Finset.sum_congr rfl; intro; rw [mul_comm]
+           -- Need to relate Sum_{skp1} T_rest_prod(s1, skp1) to IH
+           -- IH relates Sum_{s1, skp1} T_rest(...) to Sum_{path k+1} Prod(...)
+           -- We need a lemma: Sum_{end} (List.prod L) start end = Sum_{path starting at start} Prod(...)
+           -- Let's assume this lemma: `list_prod_apply_sum_right_eq_path_sum_start`
+           -- _ = ∑ s1, ∑ s0, T0 s0 s1 * (∑ (p' : Fin (k+1) → StateType) (_ : p' 0 = s1), ∏ i : Fin k, rest_matrices[i] (p' i) (p' (i+1))) := sorry
+           _ = ∑ (p : Fin (k+2) → StateType), ∏ i : Fin (k+1), matrices[i] (p i) (p (i+1)) := sorry -- Requires lemma application and sum combination.
 
 /-- Proof of the Abstract Equivalence Assertion for the Classical NN OBC case.
     Requires proof of `sum_all_elements_list_prod_eq_sum_path`. -/
@@ -420,11 +431,11 @@ theorem ClassicalOBC_Equivalence (N : ℕ) (StateType : Type) [Fintype StateType
     let model := ClassicalOBC_Model N StateType beta hN0 LocalHamiltonian in
     if h_alt_some : model.calculateZ_Alternative.isSome then
       -- Assuming ConditionsForEquivalence is true for OBC NN Classical
-      -- if h_cond : ConditionsForEquivalence model.IsClassical model.IsQuantum model.IsDiscreteConfig model.InteractionType model.BoundaryCondition then
+      if h_cond : ConditionsForEquivalence model.IsClassical model.IsQuantum model.IsDiscreteConfig model.InteractionType model.BoundaryCondition then
         let Z_ED_calc := model.Z_ED_Calculation in
         let Z_alt_val := Option.get h_alt_some in
         Z_ED_calc = Z_alt_val
-      -- else True.intro
+      else True.intro -- Conditions not met for this proof path
     else False.elim (h_alt_some (by simp [ClassicalOBC_Model]; intro hNeq0; contradiction)) :=
   by
     let model := ClassicalOBC_Model N StateType beta hN0 LocalHamiltonian
@@ -433,6 +444,8 @@ theorem ClassicalOBC_Equivalence (N : ℕ) (StateType : Type) [Fintype StateType
     have h_alt_some : Z_alt_opt.isSome := by simp [ClassicalOBC_Model]; intro hNeq0; contradiction
     let Z_alt_val := Option.get h_alt_some
     intro h_alt_some_proof -- for the `if` statement
+    intro h_cond_proof -- for the `if h_cond` statement
+
     -- Goal: Z_ED_calc = Z_alt_val
     rw [StatMechModel'.Z_ED_Calculation]; simp only [ClassicalOBC_Model, FintypeSummableSpace.integrate, Hamiltonian, WeightFunction]
     apply Finset.sum_congr rfl
