@@ -1,6 +1,6 @@
 ## Readme
 
-Math Proofs generated with Gemini 2.5 Pro in Lean 4, which is a formal proof verification assistant:
+Math Proofs generated with Gemini 2.5 Pro in Lean 4 + Mathlib
 
 https://en.wikipedia.org/wiki/Lean_(proof_assistant)
 
