@@ -51,19 +51,3 @@ Adhere to the following rules when faced with complex formal proof requests in L
 10) **Do not assume any axioms aside from the proven axioms inside Mathlib**. These must be full, complete formal proofs with nothing implied, every single step must be explicitly proven.
 
 11) **If you encounter a blocker that prevents you from completing sorry's**: create the foundational mathematical formalizations required to unblock the sorrys, then continue to complete the sorry statements.
-
-----------------------------------------------------------------------------------
-
-If you wanted to continue off of my proofs, this one would be the best start, I just don't currently have the time to complete it:
-
-https://github.com/jazir555/Math-Proofs/blob/main/completelygeneralized.lean
-
-This will be a completely generalized formula for all 1D lattice gasses, including the frustrated Potts model. It's also a fantastic pivot point to solving further unsolved physics mysteries. Once this is proven, you can use it to jump branches of physics and mathematics, I planned it out with Gemini where with a few hops you can try to prove P=NP.
-
-Here's the plan it made:
-
-https://pastebin.com/fPcaGPgf
-
-You don't even need any math background to do this, just keep saying "fill the next three sorry's" until the proof is completed, and if it gives you multiple choices of options to pursue just choose one and go back to the others if it can't solve it using that angle. Then pivot to proving the next proof in the plan Gemini laid out.
-
-If someone does pursue this, if you don't have Lean with Mathlib installed and just want Gemini to finish the proof math, send it to me after it's done and I'll confirm if it builds.
