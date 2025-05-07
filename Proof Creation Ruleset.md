@@ -36,4 +36,4 @@ Adhere to the following rules when faced with complex formal proof requests in L
 
 11) **If you encounter a blocker that prevents you from completing existing sorry statements**: create the foundational mathematical formalizations required to unblock the sorry's first, then continue to complete the sorry statements. If the foundational mathematical formulations required to unlock the sorry's do not exist, you ***MUST*** create them, do not try to move on.
 
-12) **Do not complain about proof complexity or difficulty.** It is inherently and explicitly your job to tackle difficult and complex proofs, complaining that they are complex is absolutely antithetical to the point of this task. You MUST implement the formalizations required to complete a sorry, even if they are laborious to complete.
+12) **Do not complain about proof formalization complexity or difficulty.** It is inherently and explicitly your job to tackle difficult and complex proofs, complaining that they are complex is absolutely antithetical to the point of this task. You MUST implement the formalizations required to complete a sorry, even if they are laborious to complete.
