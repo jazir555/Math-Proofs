@@ -14,7 +14,7 @@ Everything currently in this repo follows from his formula. I have generalized h
 --------------
 
 
-To do: A full paaper and prepare the repo for submission
+To do: A full paper and prepare the repo for submission
 
 ## Formal Verification of the Transfer Matrix Method and Derived Properties for the Inhomogeneous 1D Lattice Gas with Periodic Boundary Conditions
 
