@@ -34,4 +34,4 @@ Adhere to the following rules when faced with complex formal proof requests in L
 
 10) **Do not assume any axioms aside from the proven axioms inside Mathlib**. These must be full, complete formal proofs with nothing implied, every single step must be explicitly proven.
 
-11) **If you encounter a blocker that prevents you from completing sorry's**: create the foundational mathematical formalizations required to unblock the sorrys, then continue to complete the sorry statements.
+11) **If you encounter a blocker that prevents you from completing sorry's**: create the foundational mathematical formalizations required to unblock the sorry's first, then continue to complete the sorry statements.
