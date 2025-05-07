@@ -1984,13 +1984,81 @@ def ClassicalXYPBC_Model (N : ℕ) (J : ℝ) (beta : ℝ) (hN : 0 < N) : StatMec
     let integrand := fun path => WeightFunction (H_func path) parameters
     -- 1. Show H is measurable. Needs measurability of path i -> path i, path i -> path (cycle i), cos, sum.
     -- Assuming standard results hold:
-    let H_measurable : Measurable H_func := sorry -- Placeholder
+    let H_measurable : Measurable H_func := by
+      -- H_func path = ∑ i, -J * Real.cos (path i - path (Fin.cycle hN i))
+      -- The sum of measurable functions is measurable.
+      apply measurable_finset_sum Finset.univ
+      -- Need to show each term in the sum is measurable.
+      intro i _
+      -- Term is fun path => -J * Real.cos (path i - path (Fin.cycle hN i))
+      -- This is a composition of functions:
+      -- path ↦ (path i, path (Fin.cycle hN i)) ↦ path i - path (Fin.cycle hN i) ↦ Real.cos(...) ↦ -J * (...)
+      -- 1. path ↦ path i (projection) is measurable
+      have h_proj_i_measurable : Measurable (fun path : Fin N → ℝ => path i) := measurable_pi_apply i
+      -- 2. path ↦ path (Fin.cycle hN i) (projection) is measurable
+      have h_proj_cycle_i_measurable : Measurable (fun path : Fin N → ℝ => path (Fin.cycle hN i)) := measurable_pi_apply (Fin.cycle hN i)
+      -- 3. path ↦ (path i, path (Fin.cycle hN i)) is measurable (product of measurable functions)
+      have h_pair_measurable : Measurable (fun path => (path i, path (Fin.cycle hN i))) := Measurable.prod h_proj_i_measurable h_proj_cycle_i_measurable
+      -- 4. (x, y) ↦ x - y is continuous (and thus measurable)
+      have h_sub_continuous : Continuous (fun (x : ℝ × ℝ) => x.fst - x.snd) := continuous_fst.sub continuous_snd
+      have h_sub_measurable : Measurable (fun (x : ℝ × ℝ) => x.fst - x.snd) := h_sub_continuous.measurable
+      -- 5. path ↦ path i - path (Fin.cycle hN i) is measurable (composition)
+      have h_diff_measurable : Measurable (fun path => path i - path (Fin.cycle hN i)) := h_sub_measurable.comp h_pair_measurable
+      -- 6. x ↦ Real.cos x is continuous (and thus measurable)
+      have h_cos_continuous : Continuous Real.cos := continuous_cos
+      have h_cos_measurable : Measurable Real.cos := h_cos_continuous.measurable
+      -- 7. path ↦ Real.cos(...) is measurable (composition)
+      have h_cos_comp_measurable : Measurable (fun path => Real.cos (path i - path (Fin.cycle hN i))) := h_cos_measurable.comp h_diff_measurable
+      -- 8. x ↦ -J * x is continuous (and thus measurable)
+      have h_mul_const_continuous : Continuous (fun x => -J * x) := continuous_mul_const (-J)
+      have h_mul_const_measurable : Measurable (fun x => -J * x) := h_mul_const_continuous.measurable
+      -- 9. path ↦ -J * Real.cos(...) is measurable (composition)
+      exact h_mul_const_measurable.comp h_cos_comp_measurable
     -- 2. Show integrand is measurable. exp is continuous. Composition.
-    let integrand_measurable : Measurable integrand := sorry -- Placeholder
+    let integrand_measurable : Measurable integrand := by
+      -- integrand path = Complex.exp (↑(-parameters.val.beta * H_func path) : ℂ)
+      -- This is a composition of measurable functions.
+      -- 1. H_func is measurable (from the previous proof)
+      have h_H_measurable : Measurable H_func := H_measurable
+      -- 2. x ↦ -parameters.val.beta * x is measurable (continuous)
+      have h_mul_const_measurable : Measurable (fun x : ℝ => -parameters.val.beta * x) := (continuous_mul_const (-parameters.val.beta)).measurable
+      -- 3. Composition H_func ↦ -parameters.val.beta * H_func is measurable
+      have h_scaled_H_measurable : Measurable (fun path => -parameters.val.beta * H_func path) := h_mul_const_measurable.comp h_H_measurable
+      -- 4. x ↦ ↑x (ℝ to ℂ) is measurable (continuous)
+      have h_real_to_complex_measurable : Measurable (fun x : ℝ => (x : ℂ)) := continuous_ofReal.measurable
+      -- 5. Composition scaled_H ↦ ↑(scaled_H) is measurable
+      have h_casted_measurable : Measurable (fun path => (↑(-parameters.val.beta * H_func path) : ℂ)) := h_real_to_complex_measurable.comp h_scaled_H_measurable
+      -- 6. z ↦ Complex.exp z is measurable (continuous)
+      have h_cexp_measurable : Measurable Complex.exp := continuous_cexp.measurable
+      -- 7. Composition casted ↦ Complex.exp(casted) is measurable
+      exact h_cexp_measurable.comp h_casted_measurable
     -- 3. Boundedness of integrand: |H| <= N*|J|. |exp(-βH)| = exp(-βH) <= exp(β*N*|J|).
-    let bound : ℝ := Real.exp (beta * N * |J|)
-    have H_bounded : ∀ path, |H_func path| ≤ N * |J| := sorry -- Needs proof using |cos|<=1
-    have integrand_bounded : ∀ path, Complex.abs (integrand path) ≤ bound := sorry -- Needs proof
+    let bound : ℝ := Real.exp (|beta| * N * |J|)
+    have H_bounded : ∀ path, |H_func path| ≤ N * |J| := by
+      intro path
+      unfold H_func ClassicalXYPBC_Hamiltonian
+      calc |Finset.sum Finset.univ fun i => -J * Real.cos (path i - path (Fin.cycle hN i))|
+        _ ≤ Finset.sum Finset.univ fun i => |-J * Real.cos (path i - path (Fin.cycle hN i))| := abs_sum_le_sum_abs
+        _ = Finset.sum Finset.univ fun i => |J| * |Real.cos (path i - path (Fin.cycle hN i))| := by simp [abs_mul, abs_neg]
+        _ ≤ Finset.sum Finset.univ fun i => |J| * 1 := by
+            apply Finset.sum_le_sum
+            intro i _
+            apply mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (abs_nonneg J)
+        _ = Finset.sum Finset.univ fun i => |J| := by simp [mul_one]
+        _ = (Finset.univ : Finset (Fin N)).card * |J| := Finset.sum_const _
+        _ = N * |J| := by simp [Fintype.card_fin]
+    have integrand_bounded : ∀ path, Complex.abs (integrand path) ≤ bound := by
+      intro path
+      unfold integrand WeightFunction bound
+      rw [Complex.abs_exp] -- |exp(z)| = exp(re z)
+      rw [Complex.ofReal_re] -- re(↑x) = x
+      apply Real.exp_le_exp -- exp is increasing
+      calc -beta * H_func path
+        _ ≤ |-beta * H_func path| := le_abs_self _
+        _ = |beta| * |H_func path| := abs_mul _ _
+        _ ≤ |beta| * (N * |J|) := by
+            apply mul_le_mul_of_nonneg_left (H_bounded path) (abs_nonneg beta)
+        _ = |beta| * N * |J| := by rw [mul_assoc]
     -- 4. Finite measure space: measure is pi (restrict volume Ico02pi). volume(Ico02pi) = 2pi. Finite measure.
     have finite_measure : MeasureTheory.IsFiniteMeasure (XYConfigSpace_MeasureSpace N).volume := by
       convert MeasureTheory.isFiniteMeasure_pi (fun (_ : Fin N) => measureOnIco02pi)
@@ -1999,7 +2067,7 @@ def ClassicalXYPBC_Model (N : ℕ) (J : ℝ) (beta : ℝ) (hN : 0 < N) : StatMec
     -- 5. Bounded measurable function on finite measure space is integrable.
     -- Need AEStronglyMeasurable, which follows from Measurable for BorelSpace target (like ℂ)
     -- Apply `MeasureTheory.Integrable.bdd_measurable` ? Requires more work on measurability proofs.
-    exact True -- Placeholder!
+    exact MeasureTheory.Integrable.bdd_measurable integrand integrand_measurable integrand_bounded finite_measure
   calculateZ_Alternative := none -- No simple general TM equivalent AFAIK. Duality transforms exist.
   IsClassical := true; IsQuantum := false; IsDiscreteConfig := false; IsContinuousConfig := true
   HasFiniteStates := false -- Continuous space
@@ -2653,8 +2721,131 @@ end ProofsOfAssertions -- Section 7
 
 
 -- #############################################################################
--- # Section 8: Final Comments & Potential Extensions                      #
+-- # Section 8: Main Theorem and Decomposition                               #
 -- #############################################################################
+section MainTheoremDecomposition
+
+/-!
+## 8.1. Main Theorem: Free Energy Equivalence
+
+This section defines a plausible main theorem for this framework, asserting the equivalence
+between the free energy calculated from the partition function and an alternative method,
+provided the model satisfies certain conditions and an alternative calculation is available.
+
+The theorem relies on the definition of Free Energy `F = -kT log Z` and the existence of
+alternative calculations for Z (`calculateZ_Alternative`) and F (`calculateFreeEnergy`).
+It requires intermediate lemmas about the properties of `log` and the relationship between
+`Z` and `F`.
+-/
+
+/--
+Main Theorem: Asserts the equivalence between the Free Energy calculated from the partition
+function (using `Z_ED_Calculation`) and the Free Energy calculated using an alternative
+method (if available and conditions are met).
+
+Statement: For a given `model`, if an alternative calculation for Z exists (`calculateZ_Alternative`),
+and if the model satisfies the conditions for Z equivalence (`ConditionsForEquivalence`),
+and if the Free Energy can be calculated from both Z_ED and Z_alt, then the two Free Energy
+values are equal.
+
+This theorem requires proving that if `Z_ED = Z_alt` (under `ConditionsForEquivalence`),
+then `-kT log Z_ED = -kT log Z_alt`, assuming Z is positive and beta is non-zero.
+-/
+theorem free_energy_equivalence (model : StatMechModel') :
+  -- If the conditions for Z equivalence hold...
+  (ConditionsForEquivalence model) →
+  -- ...and an alternative Z calculation exists...
+  let Z_alt_opt := model.calculateZ_Alternative in
+  Z_alt_opt.isSome →
+  -- ...and WeightValueType is ℂ (required by free_energy_eq_of_partition_function_eq lemma's statement on Z_ED_Calculation.re)...
+  [h_weight_is_complex : model.WeightValueType = ℂ] →
+  let Z_ED_val : ℂ := by rw [h_weight_is_complex]; exact model.Z_ED_Calculation in
+  let Z_alt_val : ℂ := by rw [h_weight_is_complex]; exact Z_alt_opt.get! in
+  -- ...and Z_ED has a positive real part...
+  (0 < Z_ED_val.re) →
+  -- ...and beta is non-zero...
+  ((model.parameters.beta : ℝ) ≠ 0) →
+  -- ...then the free energies calculated from Z_ED and Z_alt are equal.
+  (-(1 / (model.parameters.beta : ℝ)) * Real.log Z_ED_val.re) = (-(1 / (model.parameters.beta : ℝ)) * Real.log Z_alt_val.re)
+  := sorry
+
+/-!
+## 8.2. Intermediate Lemmas / Sub-goals
+
+To prove the `free_energy_equivalence` theorem, we need to establish several intermediate results.
+These sub-goals break down the main proof into manageable steps.
+-/
+
+/--
+Lemma 1: If two positive real numbers are equal, their natural logarithms are equal.
+This is a basic property of the `Real.log` function.
+-/
+lemma log_eq_of_eq {x y : ℝ} (hx : 0 < x) (hy : 0 < y) (h_eq : x = y) :
+    Real.log x = Real.log y :=
+  congr
+
+/--
+Lemma 2: If two non-zero real numbers are equal, their reciprocals are equal.
+This is a basic property of division.
+-/
+lemma inv_eq_of_eq {x y : ℝ} (hx : x ≠ 0) (hy : y ≠ 0) (h_eq : x = y) :
+    x⁻¹ = y⁻¹ :=
+  congr
+
+/--
+Lemma 3: If two real numbers are equal, and a third real number is non-zero,
+then multiplying the first two by the reciprocal of the third results in equal numbers.
+This is a property of multiplication and equality.
+-/
+lemma mul_inv_eq_of_eq {x y c : ℝ} (h_eq : x = y) (hc_ne_zero : c ≠ 0) :
+    x * c⁻¹ = y * c⁻¹ :=
+  rw [h_eq]
+
+/--
+Lemma 4: If Z_ED and Z_alt are equal and positive, and beta is non-zero,
+then -kT log Z_ED = -kT log Z_alt (assuming k=1 and T=1/beta).
+This lemma directly connects the equivalence of Z to the equivalence of F.
+It relies on `log_eq_of_eq`, `inv_eq_of_eq`, and `mul_inv_eq_of_eq`.
+-/
+lemma free_energy_eq_of_partition_function_eq {model : StatMechModel'}
+    (h_Z_eq : model.Z_ED_Calculation = model.calculateZ_Alternative.get!) -- Assumes Z_alt is Some and equal to Z_ED
+    (h_Z_pos : 0 < model.Z_ED_Calculation.re) -- Assumes Z_ED is a complex number with positive real part
+    (h_beta_ne_zero : (model.parameters.beta : ℝ) ≠ 0) -- Assumes beta is a real number parameter
+    :
+    -- Need to extract Z_ED and Z_alt as real numbers for log.
+    -- This requires Z_ED and Z_alt to have zero imaginary parts.
+    let Z_ED_real : ℝ := model.Z_ED_Calculation.re
+    let Z_alt_real : ℝ := model.calculateZ_Alternative.get!.re
+    -- Assuming Z_ED and Z_alt are real and positive, and beta is real and non-zero.
+    -- The goal is: -(1/beta) * log(Z_ED_real) = -(1/beta) * log(Z_alt_real)
+    -(1 / (model.parameters.beta : ℝ)) * Real.log Z_ED_real =
+    -(1 / (model.parameters.beta : ℝ)) * Real.log Z_alt_real :=
+  by
+    -- 1. Prove Z_ED_real = Z_alt_real
+    have h_Z_real_eq : Z_ED_real = Z_alt_real := by
+      simp only [Z_ED_real, Z_alt_real] -- Unfold definitions
+      rw [h_Z_eq] -- Use the equality of complex numbers
+      simp -- Equality of real parts follows from equality of complex numbers
+    -- 2. Use log_eq_of_eq to get Real.log Z_ED_real = Real.log Z_alt_real
+    have h_Z_alt_pos : 0 < Z_alt_real := by rw [h_Z_real_eq]; exact h_Z_pos -- Z_alt_real is also positive
+    have h_log_eq : Real.log Z_ED_real = Real.log Z_alt_real :=
+      log_eq_of_eq h_Z_pos h_Z_alt_pos h_Z_real_eq
+    -- 3. Multiply by -1 on both sides
+    have h_neg_log_eq : -Real.log Z_ED_real = -Real.log Z_alt_real := by
+      rw [h_log_eq]
+    -- 4. Use mul_inv_eq_of_eq with c = (model.parameters.beta : ℝ)
+    let beta_val := (model.parameters.beta : ℝ)
+    -- We want to multiply -log(Z_real) by 1/beta.
+    -- The goal is -(1/beta) * log(Z_ED_real) = -(1/beta) * log(Z_alt_real)
+    -- This is (-log(Z_ED_real)) * (1/beta) = (-log(Z_alt_real)) * (1/beta)
+    -- This is of the form x * c⁻¹ = y * c⁻¹ where x = -log(Z_ED_real), y = -log(Z_alt_real), c = beta_val.
+    -- We have x = y from h_neg_log_eq. We have c ≠ 0 from h_beta_ne_zero.
+    -- So we can use mul_inv_eq_of_eq.
+    exact mul_inv_eq_of_eq h_neg_log_eq h_beta_ne_zero
+
+/-!
+## 8.3. Final Comments & Potential Extensions
+-/
 
 /-!
 ## 8. Final Comments & Potential Extensions
