@@ -1,19 +1,3 @@
-Heya! I got Gemini 2.5 Pro on the March version to have a 100% success rate in generating valid proofs that build on the first try in Lean 4 with Mathlib. Can you do me a favor and test this out? I have gotten it to write valid proofs which work for currently intractable problems. I'd love to see what you can do with this.
-
-Just don't request it fill more than 3 sorry statements at a time otherwise it loses the plot and accuracy. Build them incrementally and it works absolutely fantastically. Lean 4 with Mathlib massively improves its math capabilities.
-
-These are the proofs I've built:
-
-https://github.com/jazir555/Math-Proofs/tree/main
-
-----------------------------------------------------------------------------------
-
-Set the ruleset as the System Prompt.
-
-----------------------------------------------------------------------------------
-
-
-
 Lean Proof Ruleset
 
 "**Formalized Ruleset for Future Lean Proof Formalization:**
