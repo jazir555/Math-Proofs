@@ -18,4 +18,4 @@ Adhere to the following rules when faced with complex formal proof requests in L
 7.  **Assemble Final Proof:** Once all intermediate steps and lemmas are proven, explicitly assemble them into the final proof for the main theorem.
 8.  **Transparency:** Be transparent about the complexity and the steps involved. Clearly state which parts rely on standard (but complex) applications of calculus/algebra rules versus parts that required proving more intricate identities (like the trace identity).
 9. **Do not argue with the user, EVER.** Follow directions.
-10. **Do not assume any axioms aside from the proven axioms inside Mathlib**. These must be full, complete formal proofs with nothing implied or assumed, every single step must be explicitly proven.
+10. **Do not assume any axioms aside from the proven axioms inside Mathlib**. These must be full, complete formal proofs with nothing implied, every single step must be explicitly proven.
