@@ -1781,6 +1781,63 @@ def ClassicalIsingPBC_Model (N : ℕ) (J h : ℝ) (beta : ℝ) (hN : 0 < N) : St
       calculateFreeEnergy := StatMechModel'.calculateFreeEnergy getBeta
       calculateEntropy := StatMechModel'.calculateEntropy getBeta none -- Still needs <E>
       calculateSpecificHeat := StatMechModel'.calculateSpecificHeat getBeta none none -- Still needs <E>, <E^2>
+      calculateExpectedObservable := fun obs_name => Id.run do -- Override generic implementation
+          -- 1. Find the observable structure by name
+          let obs_opt := observables.find? (fun o => o.name = obs_name)
+          match obs_opt with
+          | none => none -- Observable not found
+          | some obs =>
+              -- 2. Calculate the numerator: Sum over configurations of O(cfg) * weight(cfg)
+              -- Assumes ObservableValueType can be cast to ℂ for multiplication.
+              -- Assumes WeightValueType is ℂ.
+              let numerator_integrand := fun cfg : Fin N → Bool =>
+                  let obs_val : obs.ObservableValueType := obs.calculate cfg parameters
+                  let weight_val : ℂ := WeightFunction (Hamiltonian cfg) parameters
+                  -- Attempt to cast obs_val to ℂ. This is a potential point of failure
+                  -- if ObservableValueType is not compatible with ℂ.
+                  -- For Ising, ObservableValueType is ℝ, which casts to ℂ.
+                  (obs_val : ℂ) * weight_val
+
+              -- The sum is over ConfigSpace (Fin N → Bool), which is a Fintype.
+              let numerator_sum := Finset.sum Finset.univ numerator_integrand
+
+              -- 3. Get the Partition Function Z (calculated via Z_ED_Calculation)
+              let Z := Z_ED_Calculation -- This is of type ℂ
+
+              -- 4. Calculate <O> = Numerator / Z
+              if Z = 0 then return none -- Avoid division by zero
+              else
+                let result_complex := numerator_sum / Z
+                -- 5. Attempt to cast the complex result back to the observable's value type (α).
+                -- This requires knowing α = obs.ObservableValueType and having a cast from ℂ to α.
+                -- This is not possible generically with the current function signature `Option α`.
+                -- However, for real-valued observables (like Energy, Magnetization in Ising),
+                -- the expectation value should be real. We can attempt to return the real part
+                -- if the imaginary part is zero, assuming α = ℝ.
+                -- This is a hack to fit the `Option α` return type.
+                if obs.ObservableValueType = ℝ then
+                  if result_complex.im = 0 then
+                    -- Cast the real part to ℝ, then to α (which is ℝ).
+                    return some (result_complex.re : α)
+                  else none -- Imaginary part is not zero, indicates a potential issue
+                else none -- Cannot handle non-ℝ ObservableValueTypes generically
+
+      -- Entropy and Specific Heat need expectation values - use the specific implementation above
+      calculateEntropy := fun getBeta _ => Id.run do -- Ignore generic <E>, calculate it here
+          let beta := getBeta parameters
+          -- Assumes Energy observable is named "Energy" and its value type is ℝ.
+          let E_avg_opt : Option ℝ := calculateExpectedObservable "Energy"
+          match E_avg_opt, calculateFreeEnergy getBeta with
+          | some E_avg, some F => some (beta * (E_avg - F)) -- Assume E_avg and F are ℝ
+          | _, _ => none
+      calculateSpecificHeat := fun getBeta _ _ => Id.run do -- Ignore generic <E>, <E^2>
+          let beta := getBeta parameters
+          -- Assumes Energy and EnergySquared observables exist and have value type ℝ.
+          let E_avg_opt : Option ℝ := calculateExpectedObservable "Energy"
+          let E2_avg_opt : Option ℝ := calculateExpectedObservable "EnergySquared"
+          match E_avg_opt, E2_avg_opt with
+          | some E_avg, some E2_avg => some (beta^2 * (E2_avg - E_avg^2)) -- Assume E_avg and E2_avg are ℝ
+          | _, _ => none
   }
 
 -- Example: Get the transfer matrix for N=2 Ising PBC
@@ -2335,6 +2392,10 @@ instance ClassicalCont_ConfigSpace_MeasureSpace (Dim : ℕ) : MeasureSpace (Clas
   -- advanced Mathlib development or external libraries.
   -- Placeholder: Need to define the `measure` field here.
   -- Blocked by lack of formalization for MeasureSpace on function spaces (path integral measure)
+  -- To fully formalize this, one would need to define a measure on the function space `(Fin Dim → ℝ) → ℝ`.
+  -- This typically involves constructing a sigma-algebra (like the Borel sigma-algebra on the function space)
+  -- and defining a measure on it. For path integrals, this measure is often non-trivial (e.g., Gaussian measure).
+  -- This requires significant foundational work in functional analysis and measure theory within Lean.
 @[nolint unusedArguments]
 instance ClassicalCont_ConfigSpace_MeasurableSpace (Dim : ℕ) : MeasurableSpace (ClassicalCont_ConfigSpace Dim) :=
   -- Formalizing a MeasurableSpace structure on a function space requires defining a sigma algebra.
@@ -2342,6 +2403,9 @@ instance ClassicalCont_ConfigSpace_MeasurableSpace (Dim : ℕ) : MeasurableSpace
   -- which is generated by cylinder sets. This also requires advanced measure theory concepts.
   -- Placeholder: Need to define the `measurableSpace` field here.
   -- Blocked by lack of formalization for MeasurableSpace on function spaces (Borel sigma algebra)
+  -- To fully formalize this, one would need to define the appropriate sigma-algebra on the function space.
+  -- This is usually the smallest sigma-algebra that makes the evaluation maps (cfg ↦ cfg(x) for each x in the domain) measurable.
+  -- This requires formalizing the topology on the function space and the definition of Borel sets.
 
 -- Example Hamiltonian Functional (Euclidean Action for φ⁴ theory in D dimensions)
 -- H[φ] = ∫ dᴰx [ (1/2)(∇φ)² + (1/2)m²φ² + (λ/4!)φ⁴ ]
@@ -2354,7 +2418,20 @@ instance ClassicalCont_ConfigSpace_MeasurableSpace (Dim : ℕ) : MeasurableSpace
 -- 3. Formalization of integration over the spatial domain (dᴰx).
 -- 4. Combining these into a single functional.
 @[nolint unusedArguments]
-noncomputable def examplePhi4HamiltonianFunctional (params : ClassicalCont_Params) (cfg : ClassicalCont_ConfigSpace params.Dim) : ℝ := sorry
+-- Placeholder for the φ⁴ Hamiltonian Functional (Euclidean Action)
+-- H[φ] = ∫ dᴰx [ (1/2)(∇φ)² + (1/2)m²φ² + (λ/4!)φ⁴ ]
+-- Formalizing this requires:
+-- 1. A proper definition of the configuration space as a function space (e.g., Schwartz space, Sobolev space).
+-- 2. Formalization of derivatives (∇φ) in this function space. This involves defining gradients and norms on function spaces.
+-- 3. Formalization of integration over the spatial domain (dᴰx). This requires defining measures on ℝ^D and the integral of functions over this domain.
+-- 4. Combining these into a single functional.
+-- These mathematical concepts are not fully formalized in the current Mathlib context, or require significant effort to build upon existing libraries.
+-- noncomputable def examplePhi4HamiltonianFunctional (params : ClassicalCont_Params) (cfg : ClassicalCont_ConfigSpace params.Dim) : ℝ := sorry
+-- This definition requires formalizing:
+-- 1. The configuration space as a function space with appropriate topology.
+-- 2. Derivatives (∇φ) in this function space.
+-- 3. Integration over the spatial domain (dᴰx).
+-- These mathematical concepts are not fully formalized in the current Mathlib context.
 
 -- Need a measure on the configuration space
 @[nolint unusedArguments]
@@ -2362,7 +2439,13 @@ noncomputable def examplePhi4HamiltonianFunctional (params : ClassicalCont_Param
 -- This requires formalizing a measure on a function space, which is a significant undertaking
 -- in measure theory formalization.
 @[nolint unusedArguments]
-def PathIntegralMeasure (params : ClassicalCont_Params) : MeasureTheory.Measure (ClassicalCont_ConfigSpace params.Dim) := sorry
+-- Placeholder for the Path Integral Measure (e.g., Gaussian measure for free field)
+-- This requires formalizing a measure on a function space, which is a significant undertaking
+-- in measure theory formalization.
+-- For a free field, this would be a Gaussian measure. For interacting fields, it's more complex.
+-- This requires defining the measure explicitly or constructively within Lean's measure theory framework.
+@[nolint unusedArguments]
+def PathIntegralMeasure (params : ClassicalCont_Params) : MeasureTheory.Measure (ClassicalCont_ConfigSpace params.Dim) := -- Formalizing a path integral measure on a function space requires advanced measure theory.
 
 def ClassicalCont_Model (params : ClassicalCont_Params)
     -- Hamiltonian functional H[cfg]
@@ -2437,9 +2520,9 @@ def HilbertTensorProduct (N : ℕ) (H_site : Type)
     [NormedAddCommGroup H_site] [InnerProductSpace ℂ H_site] [CompleteSpace H_site] [HilbertSpace ℂ H_site]
     : Type :=
   match N with
-  | 0 => ℂ
-  | 1 => H_site
-  | (n + 2) => completedTensorProduct2 (HilbertTensorProduct (n + 1) H_site) H_site
+  | 0 => ℂ -- The 0-fold tensor product is the base field ℂ
+  | 1 => H_site -- The 1-fold tensor product is the space itself
+  | (n + 2) => completedTensorProduct2 (HilbertTensorProduct (n + 1) H_site) H_site -- Recursive definition for N >= 2
 
 @[nolint unusedArguments]
 instance HilbertTensorProduct_NormedAddCommGroup (N : ℕ) : NormedAddCommGroup (HilbertTensorProduct N H_site) := by
@@ -2514,6 +2597,7 @@ instance HilbertTensorProduct_FiniteDimensional (N : ℕ) [h_site_fin : FiniteDi
 
 @[nolint unusedArguments]
 def HilbertTensorProduct_finrank (N : ℕ) [h_fin : FiniteDimensional ℂ H_site] : ℕ := (FiniteDimensional.finrank ℂ H_site) ^ N
+-- The dimension of the N-fold tensor product of a finite-dimensional space is the dimension of the site space raised to the power of N.
 
 -- Define operators acting on site `i` within the tensor product space
 -- e.g., Sᵢˣ = Id ⊗ ... ⊗ Sˣ ⊗ ... ⊗ Id (Sˣ at position i)
@@ -2530,7 +2614,11 @@ noncomputable def LocalOperator (N : ℕ) (op_site : ContinuousLinearMap ℂ H_s
   -- requires advanced formalisms for iterated tensor products of operators, which are not
   -- readily available or simple to construct within the current Mathlib context.
   -- This definition is blocked by the need for these formalisms.
-  sorry
+  -- Formalizing local operators on tensor products requires defining operators acting on specific tensor factors in an N-fold tensor product.
+  -- This typically involves constructing an operator of the form Id ⊗ ... ⊗ op_site ⊗ ... ⊗ Id,
+  -- where op_site acts on the i-th tensor factor and Id acts on all other factors.
+  -- This requires formalizing the tensor product of continuous linear maps and iterated tensor products.
+  sorry -- Placeholder for the actual definition
 
 -- Example: Heisenberg Hamiltonian H = ∑ᵢ J Sᵢ⋅Sᵢ₊₁ + h Sᵢᶻ (PBC)
 -- Sᵢ⋅Sⱼ = SᵢˣSⱼˣ + SᵢʸSⱼʸ + SᵢᶻSⱼᶻ
@@ -2540,11 +2628,24 @@ noncomputable def HeisenbergHamiltonian (N : ℕ) (params : QuantumLattice_Param
     (Sx Sy Sz : ContinuousLinearMap ℂ H_site H_site) -- Spin operators on site
     : ContinuousLinearMap ℂ (HilbertTensorProduct N H_site) (HilbertTensorProduct N H_site) :=
   -- This definition depends on the `LocalOperator` definition, which is currently blocked
-  -- by the need for advanced tensor product formalisms.
-  sorry
-    -- Definition involves summing LocalOperator applications:
-    -- ∑ᵢ J * (LocalOp(Sx, i)*LocalOp(Sx, cycle i) + LocalOp(Sy, i)*LocalOp(Sy, cycle i) + LocalOp(Sz, i)*LocalOp(Sz, cycle i))
-    -- + ∑ᵢ h * LocalOp(Sz, i)
+  -- by the need for advanced tensor product formalisms for operators.
+  --
+  -- Formalization steps required:
+  -- 1. Formalize the concept of a local operator acting on a specific tensor factor in an N-fold tensor product.
+  --    This involves defining `LocalOperator` rigorously using tensor product maps or similar constructions.
+  -- 2. Define the tensor product of operators (e.g., A ⊗ B).
+  -- 3. Define the sum of operators.
+  -- 4. Combine these to form the Heisenberg Hamiltonian operator as a sum of products of local operators.
+  --
+  -- This definition is blocked by the need for advanced tensor product formalisms for operators.
+  -- Formalization requires summing local operators and tensor products of operators.
+  -- The Hamiltonian is typically a sum of terms involving local operators acting on neighboring sites.
+  -- For the Heisenberg model with PBC: H = ∑_{i=0}^{N-1} [ J_x S_i^x S_{i+1}^x + J_y S_i^y S_{i+1}^y + J_z S_i^z S_{i+1}^z ] + ∑_{i=0}^{N-1} h S_i^z
+  -- where S_i^α is the spin operator S^α acting on the i-th site in the tensor product space.
+  -- Definition involves summing LocalOperator applications:
+  -- ∑ᵢ J * (LocalOp(Sx, i)*LocalOp(Sx, cycle i) + LocalOp(Sy, i)*LocalOp(Sy, cycle i) + LocalOp(Sz, i)*LocalOp(Sz, cycle i))
+  -- + ∑ᵢ h * LocalOp(Sz, i)
+  sorry -- Placeholder for the actual definition
 
 -- Assume Hamiltonian OpH is given (e.g., constructed like HeisenbergHamiltonian)
 def QuantumLattice_Model (N : ℕ) (params : QuantumLattice_Params N)
