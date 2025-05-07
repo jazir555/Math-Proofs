@@ -2510,7 +2510,12 @@ def HilbertTensorProduct_finrank (N : ℕ) [h_fin : FiniteDimensional ℂ H_site
 noncomputable def LocalOperator (N : ℕ) (op_site : ContinuousLinearMap ℂ H_site H_site) (i : Fin N)
   [FiniteDimensional ℂ H_site] -- Easier to define for finite dim site
   : ContinuousLinearMap ℂ (Matrix (Fin N) (Fin (FiniteDimensional.finrank ℂ H_site)) ℂ) -- Placeholder for tensor product space H_site^N
-                           (Matrix (Fin N) (Fin (FiniteDimensional.finrank ℂ H_site)) ℂ) := sorry
+                           (HilbertTensorProduct N H_site) (HilbertTensorProduct N H_site) :=
+  -- Formalizing the construction of a local operator acting on the i-th site of a tensor product
+  -- requires advanced formalisms for iterated tensor products of operators, which are not
+  -- readily available or simple to construct within the current Mathlib context.
+  -- This definition is blocked by the need for these formalisms.
+  sorry
 
 -- Example: Heisenberg Hamiltonian H = ∑ᵢ J Sᵢ⋅Sᵢ₊₁ + h Sᵢᶻ (PBC)
 -- Sᵢ⋅Sⱼ = SᵢˣSⱼˣ + SᵢʸSⱼʸ + SᵢᶻSⱼᶻ
@@ -2518,7 +2523,10 @@ noncomputable def LocalOperator (N : ℕ) (op_site : ContinuousLinearMap ℂ H_s
 noncomputable def HeisenbergHamiltonian (N : ℕ) (params : QuantumLattice_Params N) (hN : 0 < N)
     [h_site_fin : FiniteDimensional ℂ H_site] (h_rank : FiniteDimensional.finrank ℂ H_site > 0)
     (Sx Sy Sz : ContinuousLinearMap ℂ H_site H_site) -- Spin operators on site
-    : ContinuousLinearMap ℂ (HilbertTensorProduct N H_site) (HilbertTensorProduct N H_site) := sorry
+    : ContinuousLinearMap ℂ (HilbertTensorProduct N H_site) (HilbertTensorProduct N H_site) :=
+  -- This definition depends on the `LocalOperator` definition, which is currently blocked
+  -- by the need for advanced tensor product formalisms.
+  sorry
     -- Definition involves summing LocalOperator applications:
     -- ∑ᵢ J * (LocalOp(Sx, i)*LocalOp(Sx, cycle i) + LocalOp(Sy, i)*LocalOp(Sy, cycle i) + LocalOp(Sz, i)*LocalOp(Sz, cycle i))
     -- + ∑ᵢ h * LocalOp(Sz, i)
