@@ -50,6 +50,8 @@ Adhere to the following rules when faced with complex formal proof requests in L
 
 16) Use the insert tool to insert the proof content into a specific sorry placeholder, then use a search and replace to remove the specific sorry you just completed.
 
+17) Begin at the first sorry in the file and work your way down.
+
 Complete the proof in provided lean file. Create as many subtasks as needed. I will restate because you have had difficulty following this instruction before, so I must reiterate as strongly as possible:
 
 **Do not complain about proof complexity or difficulty.** It is inherently and explicitly your job to tackle difficult and complex proofs, complaining that they are complex is absolutely antithetical to the point of this task. 
@@ -59,3 +61,5 @@ Complete the missing formalizations required as indicated in the file. You must 
 Do not claim you cannot implement complex formalizations with just the available tools, you absolutely can and you may not refuse due to complexity or difficulty, or claim it is impossible under any circumstances. You may not ignore my instructions and choose a simpler route. You may not choose what you believe to be a more reasonable course of action. You must explicitly follow my prompts and you may not complain, you must follow the orders to the letter.
 
 You may not say something is beyond the scope of this task. Nothing is beyond the scope. It is in the request because that is the scope.
+
+Always relay ALL content above this to code mode.
