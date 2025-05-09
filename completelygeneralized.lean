@@ -3799,7 +3799,6 @@ lemma cylinder_sets_is_semiring (Dim : ℕ) : MeasureTheory.Measure.IsSemiring (
   -- 2. The intersection of two sets in cylinder_sets is in cylinder_sets.
   -- 3. The complement of a set in cylinder_sets is a finite disjoint union of sets in cylinder_sets.
   -- This requires working with the definition of cylinder sets and properties of measurable sets in finite product spaces.
-  -- TODO: Formalize the proof of the semiring properties for cylinder_sets.
   -- Use the Mathlib lemma MeasureTheory.Measure.IsSemiring.cylinder
   exact MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
 
@@ -3828,7 +3827,7 @@ must be a pre-measure (satisfy `IsAddGauge`). This requires proving:
 -/
 
 lemma measure_of_cylinder_empty (Dim : ℕ) : measure_of_cylinder Dim ∅ (⟨Finset.empty, ⟨∅, ⟨MeasurableSpace.measurableSet_empty, by { ext f; simp }⟩⟩⟩) = 0 :=
-  by
+by
     unfold measure_of_cylinder
     simp
     -- The empty cylinder set corresponds to a choice of P and an empty measurable set B in (P → ℝ).
@@ -4372,6 +4371,61 @@ lemma measurable_subset_cylinder_is_cylinder {α : Type*} {ι : Type*} [Measurab
     ∃ B' : Set (P → α), MeasurableSpace.measurableSet (Pi.measurableSpace (fun _ : P => α)) B' ∧ S = {f | (fun i : P => f i.val) ∈ B'} :=
 by
   exact MeasureTheory.measurable_set_eq_preimage_measurable_of_subset_preimage hB_measurable hS_measurable hS_subset
+by
+    -- The proof relies on the fact that the measure of a cylinder set is independent of the
+    -- finite set of points P used to define it, as long as the set is large enough.
+    -- It also relies on the countable additivity of the Gaussian measure on finite-dimensional spaces (P → ℝ).
+
+    -- 1. Choose a common finite set of points P_star that contains all points from the
+    -- definitions of s i and their union.
+    obtain ⟨P_star, h_P_star⟩ := exists_common_finset_for_cylinder_sets Dim hs_mem hs_iUnion_mem
+
+    -- 2. Express each s i and their union as cylinder sets over P_star.
+    -- This is provided by the lemma above.
+    -- For each i, obtain B_i_star and hB_i_star_measurable from h_P_star.left i.
+    -- Obtain B_union_star and hB_union_star_measurable from h_P_star.right.
+    let B_i_star (i : ι) : Set (P_star → ℝ) := (h_P_star.left i).choose
+    have hB_i_star_measurable (i : ι) : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) (B_i_star i) := (h_P_star.left i).choose_spec.left
+    have h_s_i_eq_P_star (i : ι) : s i = { f | (fun p : P_star => f p.val) ∈ B_i_star i } := (h_P_star.left i).choose_spec.right
+
+    let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+    have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+    have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+
+    -- 3. Relate the sets B_i_star and B_union_star.
+    -- The condition (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } and s i = { f | (fun p : P_star => f p.val) ∈ B_i_star } implies B_union_star = ⋃ i, B_i_star (up to measure zero).
+    -- The disjointness of s i implies the disjointness of B_i_star (up to measure zero).
+    have h_B_union_eq_iUnion_B : B_union_star = ⋃ i, B_i_star i := by
+      ext x; simp
+      constructor
+      · intro hx; have hf : { f : FieldConfig Dim | (fun p : P_star => f p.val) ∈ B_union_star } := hx
+        rw [← h_iUnion_eq_P_star] at hf; simp at hf; exact hf
+      · intro hx; have hf : ⋃ i, { f : FieldConfig Dim | (fun p : P_star => f p.val) ∈ B_i_star i } := hf
+        rw [cylinder_set_iUnion_eq_iUnion_B] at hf; simp at hf; exact hf
+
+    have h_B_disjoint : Pairwise (Disjoint on B_i_star) := by
+      intro i j hij
+      rw [cylinder_set_disjoint_iff_disjoint_B]
+      exact hs_disjoint i j hij
+
+    -- 4. Apply countable additivity of the Gaussian measure on P_star → ℝ.
+    let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
+
+    -- 5. Substitute back the definitions of measure_of_cylinder using the common P_star representation.
+    calc measure_of_cylinder Dim (⋃ i, s i) hs_iUnion_mem
+      _ = measure_of_cylinder Dim (⋃ i, s i) ⟨P_star, B_union_star, hB_union_star_measurable, h_iUnion_eq_P_star⟩ :=
+        measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_eq_P_star) (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
+      _ = μ_P_star B_union_star := by unfold measure_of_cylinder; simp
+      _ = ∑' i, μ_P_star (B_i_star i) := by rw [h_measure_iUnion_eq_sum_measure]
+      _ = ∑' i, measure_of_cylinder Dim (s i) ⟨P_star, B_i_star i, hB_i_star_measurable i, h_s_i_eq_P_star i⟩ := by
+          simp; apply tsum_congr; intro i;
+          exact measure_of_cylinder_eq_of_representation Dim (s i) ((hs_mem i).choose) P_star ((hs_mem i).choose_spec.choose) (B_i_star i) ((hs_mem i).choose_spec.choose_spec.right) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.left) (hB_i_star_measurable i)
+      _ = ∑' i, measure_of_cylinder Dim (s i) (hs_mem i) := by
+          apply tsum_congr; intro i;
+          exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 /-!
 End of Intermediate Lemmas for Countable Additivity
 -/
@@ -4836,6 +4890,18 @@ This requires defining the measure explicitly or constructively within Lean's me
   For continuous field theories, this is typically a Borel sigma algebra on the function space, which is generated by cylinder sets.
   This also requires advanced measure theory concepts and is a significant undertaking in measure theory formalization within Lean.
   -/
+/-- Placeholder for the φ⁴ Hamiltonian Functional (Euclidean Action).
+This definition represents a simplified or abstract version, using `sorry` for the complex parts.
+H[φ] = ∫ dᴰx [ (1/2)(∇φ)² + (1/2)m²φ² + (λ/4!)φ⁴ ]
+Formalizing this requires:
+1. A proper definition of the configuration space as a function space (e.g., Schwartz space, Sobolev space).
+2. Formalization of derivatives (∇φ) in this function space.
+3. Formalization of integration over the spatial domain (dᴰx).
+4. Combining these into a single functional.
+These mathematical concepts are not fully formalized in the current Mathlib context, or require significant effort to build upon existing libraries.
+-/
+@[nolint unusedArguments]
+noncomputable def examplePhi4HamiltonianFunctional (params : ClassicalCont_Params) (cfg : ClassicalCont_ConfigSpace params.Dim) : ℝ := sorry
   /-!
   **Formalization Note:** Formalizing a `MeasurableSpace` structure on a function space requires defining a sigma algebra.
   For continuous field theories, this is typically a Borel sigma algebra on the function space, which is generated by cylinder sets.
@@ -4994,7 +5060,7 @@ def ClassicalCont_ConfigSpace.μ (Dim : ℕ) : MeasureTheory.Measure (ClassicalC
     (cylinder_sets_is_semiring Dim) -- Proof that cylinder_sets forms a semiring (currently sorry)
     (by -- Prove IsAddGauge (pre-measure) property for measure_of_cylinder
         constructor
-        · exact measure_of_cylinder_empty Dim -- Measure of empty set is 0 (currently sorry)
+        · exact measure_of_cylinder_empty Dim
         · exact measure_of_cylinder_iUnion_disjointed Dim -- Countable additivity (currently sorry)
     )
   /-!
