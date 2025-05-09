@@ -65,6 +65,8 @@ variable (H_site : Type) [NormedAddCommGroup H_site] [InnerProductSpace ℂ H_si
 /-- The completed tensor product of two Hilbert spaces H1 and H2.
 Defined as the completion of the algebraic tensor product H1 ⊗[ℂ] H2
 with the inner product tensor product norm.
+Defined as the completion of the algebraic tensor product H1 ⊗[ℂ] H2
+with the inner product tensor product norm.
 /-!
 **Formalization Note:** Rigorously defining the completed tensor product requires
 careful use of Mathlib's `TensorProduct` and `Completion` libraries, ensuring
@@ -3799,8 +3801,7 @@ lemma cylinder_sets_is_semiring (Dim : ℕ) : MeasureTheory.Measure.IsSemiring (
   -- This requires working with the definition of cylinder sets and properties of measurable sets in finite product spaces.
   -- TODO: Formalize the proof of the semiring properties for cylinder_sets.
   -- Use the Mathlib lemma MeasureTheory.Measure.IsSemiring.cylinder
-  MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
-exact MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
+  exact MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
 
 /-! ### Measure on Cylinder Sets (Pre-measure) ### -/
 
@@ -3832,8 +3833,8 @@ lemma measure_of_cylinder_empty (Dim : ℕ) : measure_of_cylinder Dim ∅ (⟨Fi
     simp
     -- The empty cylinder set corresponds to a choice of P and an empty measurable set B in (P → ℝ).
     -- The measure of the empty set in any measure space is 0.
+    -- Use the fact that the measure of the empty set is 0 for the Gaussian measure on (P → ℝ).
     rw [MeasureTheory.Measure.empty]
-    rfl
 
 /-!
 ## Intermediate Lemmas for Countable Additivity of `measure_of_cylinder`
@@ -3888,6 +3889,43 @@ by
     -- We also need MeasurableSpace (FieldConfig Dim). This is given by FieldConfig_MeasurableSpace.
     -- We need [MeasurableSpace (ℝ^(DomainPoint Dim))]. This is FieldConfig_MeasurableSpace.
 
+obtain ⟨B_i_star, hB_i_star_measurable, h_s_i_eq_P_star⟩ :=
+  measurable_subset_cylinder_is_cylinder ℝ (DomainPoint Dim) P_star B_union hB_union_measurable (s i) h_s_i_measurable h_s_i_subset_union
+-- The proof relies on showing that both sides are equal to the measure of S
+    -- represented over a common superset P_star = P1 ∪ P2.
+    let P_star := P1 ∪ P2
+    have hP1_subset_P_star : P1 ⊆ P_star := Finset.subset_union_left P1 P2
+    have hP2_subset_P_star : P2 ⊆ P_star := Finset.subset_union_right P1 P2
+
+    -- Represent S over P_star using the first representation (P1, B1).
+    let B1_star := Set.preimage (fun (g : P_star → ℝ) (p : P1) => g p.val) B1
+    have hB1_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B1_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB1_measurable
+    have hS_eq_P_star1 : S = { f | (fun p : P_star => f p.val) ∈ B1_star } := by
+      unfold Set.preimage; simp; exact hS_eq1
+
+    -- Represent S over P_star using the second representation (P2, B2).
+    let B2_star := Set.preimage (fun (g : P_star → ℝ) (p : P2) => g p.val) B2
+    have hB2_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B2_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB2_measurable
+    have hS_eq_P_star2 : S = { f | (fun p : P_star => f p.val) ∈ B2_star } := by
+      unfold Set.preimage; simp; exact hS_eq2
+
+    -- The two representations over P_star must be equal as sets of functions.
+    have h_B1_star_eq_B2_star : B1_star = B2_star := by
+      ext x; simp
+      rw [← hS_eq_P_star1, ← hS_eq_P_star2]
+      simp
+
+    -- The measure of S using the first representation is equal to the measure over P_star.
+    calc measure_of_cylinder Dim S ⟨P1, B1, hB1_measurable, hS_eq1⟩
+      _ = measure_of_cylinder Dim S ⟨P_star, B1_star, hB1_star_measurable, hS_eq_P_star1⟩ :=
+        measure_of_cylinder_eq_of_superset_points Dim hP1_subset_P_star hS_eq1 hB1_measurable
+      -- The measure of S using the second representation is equal to the measure over P_star.
+      _ = measure_of_cylinder Dim S ⟨P_star, B2_star, hB2_star_measurable, hS_eq_P_star2⟩ := by rw [h_B1_star_eq_B2_star]
+      _ = measure_of_cylinder Dim S ⟨P2, B2, hB2_measurable, hS_eq2⟩ :=
+        (measure_of_cylinder_eq_of_superset_points Dim hP2_subset_P_star hS_eq2 hB2_measurable).symm
+exact MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
     -- Assuming `measurable_subset_cylinder_is_cylinder` exists and is applicable:
     obtain ⟨B_i_star, hB_i_star_measurable, h_s_i_eq_P_star⟩ :=
       measurable_subset_cylinder_is_cylinder ℝ (DomainPoint Dim) P_star B_union hB_union_measurable (s i) h_s_i_measurable h_s_i_subset_union
@@ -3895,6 +3933,49 @@ by
     -- This provides the required representation for s i over P_star.
     use B_i_star, hB_i_star_measurable, h_s_i_eq_P_star
 
+lemma measure_of_cylinder_eq_of_representation (Dim : ℕ) {S : Set (FieldConfig Dim)}
+    {P1 P2 : Finset (DomainPoint Dim)} {B1 : Set (P1 → ℝ)} {B2 : Set (P2 → ℝ)}
+    (hS_eq1 : S = { f | (fun p : P1 => f p.val) ∈ B1 })
+    (hS_eq2 : S = { f | (fun p : P2 => f p.val) ∈ B2 })
+    (hB1_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P1) => ℝ)) B1)
+    (hB2_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P2) => ℝ)) B2) :
+    measure_of_cylinder Dim S ⟨P1, B1, hB1_measurable, hS_eq1⟩ =
+    measure_of_cylinder Dim S ⟨P2, B2, hB2_measurable, hS_eq2⟩ :=
+  by
+    -- The proof relies on showing that both sides are equal to the measure of S
+    -- represented over a common superset P_star = P1 ∪ P2.
+    let P_star := P1 ∪ P2
+    have hP1_subset_P_star : P1 ⊆ P_star := Finset.subset_union_left P1 P2
+    have hP2_subset_P_star : P2 ⊆ P_star := Finset.subset_union_right P1 P2
+
+    -- Represent S over P_star using the first representation (P1, B1).
+    let B1_star := Set.preimage (fun (g : P_star → ℝ) (p : P1) => g p.val) B1
+    have hB1_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B1_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB1_measurable
+    have hS_eq_P_star1 : S = { f | (fun p : P_star => f p.val) ∈ B1_star } := by
+      unfold Set.preimage; simp; exact hS_eq1
+
+    -- Represent S over P_star using the second representation (P2, B2).
+    let B2_star := Set.preimage (fun (g : P_star → ℝ) (p : P2) => g p.val) B2
+    have hB2_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B2_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB2_measurable
+    have hS_eq_P_star2 : S = { f | (fun p : P_star => f p.val) ∈ B2_star } := by
+      unfold Set.preimage; simp; exact hS_eq2
+
+    -- The two representations over P_star must be equal as sets of functions.
+    have h_B1_star_eq_B2_star : B1_star = B2_star := by
+      ext x; simp
+      rw [← hS_eq_P_star1, ← hS_eq_P_star2]
+      simp
+
+    -- The measure of S using the first representation is equal to the measure over P_star.
+    calc measure_of_cylinder Dim S ⟨P1, B1, hB1_measurable, hS_eq1⟩
+      _ = measure_of_cylinder Dim S ⟨P_star, B1_star, hB1_star_measurable, hS_eq_P_star1⟩ :=
+        measure_of_cylinder_eq_of_superset_points Dim hP1_subset_P_star hS_eq1 hB1_measurable
+      -- The measure of S using the second representation is equal to the measure over P_star.
+      _ = measure_of_cylinder Dim S ⟨P_star, B2_star, hB2_star_measurable, hS_eq_P_star2⟩ := by rw [h_B1_star_eq_B2_star]
+      _ = measure_of_cylinder Dim S ⟨P2, B2, hB2_measurable, hS_eq2⟩ :=
+        (measure_of_cylinder_eq_of_superset_points Dim hP2_subset_P_star hS_eq2 hB2_measurable).symm
   · -- The second part of the goal is to show the union is represented over P_star.
     -- We already have this from the definition of the union being a cylinder set over P_union (which is P_star).
     -- We need to show ∃ B_union_star ... (⋃ i, s i) = { f | ... }.
@@ -4316,7 +4397,7 @@ lemma measure_of_cylinder_iUnion_disjointed (Dim : ℕ) {ι : Type*} [Countable 
     -- 1. Choose a common finite set of points P_star that contains all points from the
     -- definitions of s i and their union.
     -- This requires a lemma stating that such a common finite set exists.
-    -- `lemma exists_common_finset_for_cylinder_sets {Dim : ℕ} {ι : Type*} [Countable ι] {s : ι → Set (FieldConfig Dim)} (hs_mem : ∀ i, s i ∈ cylinder_sets Dim) (hs_iUnion_mem : (⋃ i, s i) ∈ cylinder_sets Dim) : ∃ (P_star : Finset (DomainPoint Dim)), ∀ i, ∃ (B_i_star : Set (P_star → ℝ)), MeasurableSpace.measurableSet (Pi.measurableSpace (fun x : P_star => ℝ)) B_i_star ∧ s i = { f | (fun p : P_star => f p.val) ∈ B_i_star } ∧ ∃ (B_union_star : Set (P_star → ℝ)), MeasurableSpace.measurableSet (Pi.measurableSpace (fun x : P_star => ℝ)) B_union_star ∧ (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := sorry`
+    -- `lemma exists_common_finset_for_cylinder_sets {Dim : ℕ} {ι : Type*} [Countable ι] {s : ι → Set (FieldConfig Dim)} (hs_mem : ∀ i, s i ∈ cylinder_sets Dim) (hs_iUnion_mem : (⋃ i, s i) ∈ cylinder_sets Dim) : ∃ (P_star : Finset (DomainPoint Dim)), ∀ i, ∃ (B_i_star : Set (P_star → ℝ)), MeasurableSpace.measurableSet (Pi.measurableSpace (fun x : P_star => ℝ)) B_i_star ∧ s i = { f | (fun p : P_star => f p.val) ∈ B_i_star } ∧ ∃ (B_union_star : Set (P_star → ℝ)), MeasurableSpace.measurableSet (Pi.measurableSpace (fun x : P_star => ℝ)) B_union_star ∧ (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := `
     -- Assuming this lemma exists:
     obtain ⟨P_star, h_P_star⟩ := exists_common_finset_for_cylinder_sets Dim hs_mem hs_iUnion_mem
 
@@ -4329,30 +4410,31 @@ lemma measure_of_cylinder_iUnion_disjointed (Dim : ℕ) {ι : Type*} [Countable 
     -- i.e., measure_of_cylinder Dim S ⟨P, B, ...⟩ = measure_of_cylinder Dim S ⟨P', B', ...⟩
     -- if S is the same set and P' ⊇ P and B' is the corresponding set for P'.
     -- This requires a lemma about the independence of the measure definition from the choice of P.
-    -- `lemma measure_of_cylinder_eq_of_superset_points {Dim : ℕ} {P P' : Finset (DomainPoint Dim)} {B : Set (P → ℝ)} {S : Set (FieldConfig Dim)} (hP_subset : P ⊆ P') (hS_eq : S = { f | (fun p : P => f p.val) ∈ B }) (hB_measurable : measurable_space.measurable_set (pi.measurable_space (fun x : P => ℝ)) B) : measure_of_cylinder Dim S ⟨P, B, hB_measurable, hS_eq⟩ = measure_of_cylinder Dim S ⟨P', pi.preimage (finset.inclusion hP_subset) B, measurable_pi_preimage hB_measurable, by { ext f; simp [hS_eq, set.mem_preimage, function.comp, finset.inclusion_mk] }⟩ := sorry`
+    -- `lemma measure_of_cylinder_eq_of_superset_points {Dim : ℕ} {P P' : Finset (DomainPoint Dim)} {B : Set (P → ℝ)} {S : Set (FieldConfig Dim)} (hP_subset : P ⊆ P') (hS_eq : S = { f | (fun p : P => f p.val) ∈ B }) (hB_measurable : measurable_space.measurable_set (pi.measurable_space (fun x : P => ℝ)) B) : measure_of_cylinder Dim S ⟨P, B, hB_measurable, hS_eq⟩ = measure_of_cylinder Dim S ⟨P', pi.preimage (finset.inclusion hP_subset) B, measurable_pi_preimage hB_measurable, by { ext f; simp [hS_eq, set.mem_preimage, function.comp, finset.inclusion_mk] }⟩ := `
     -- And a lemma extending this to any two representations over a common superset P_star.
-    -- `lemma measure_of_cylinder_eq_of_representation {Dim : ℕ} {S : Set (FieldConfig Dim)} {P1 P2 : Finset (DomainPoint Dim)} {B1 : Set (P1 → ℝ)} {B2 : Set (P2 → ℝ)} (hS_eq1 : S = { f | (fun p : P1 => f p.val) ∈ B1 }) (hS_eq2 : S = { f | (fun p : P2 => f p.val) ∈ B2 }) (hB1_measurable : measurable_space.measurable_set (pi.measurable_space (fun x : P1 => ℝ)) B1) (hB2_measurable : measurable_space.measurable_set (pi.measurable_space (fun x : P2 => ℝ)) B2) : measure_theory.measure.gaussian (fun x => 0) (matrix.id P1) B1 = measure_theory.measure.gaussian (fun x => 0) (matrix.id P2) B2 := sorry`
+    -- `lemma measure_of_cylinder_eq_of_representation {Dim : ℕ} {S : Set (FieldConfig Dim)} {P1 P2 : Finset (DomainPoint Dim)} {B1 : Set (P1 → ℝ)} {B2 : Set (P2 → ℝ)} (hS_eq1 : S = { f | (fun p : P1 => f p.val) ∈ B1 }) (hS_eq2 : S = { f | (fun p : P2 => f p.val) ∈ B2 }) (hB1_measurable : measurable_space.measurable_set (pi.measurable_space (fun x : P1 => ℝ)) B1) (hB2_measurable : measurable_space.measurable_set (pi.measurable_space (fun x : P2 => ℝ)) B2) : measure_theory.measure.gaussian (fun x => 0) (matrix.id P1) B1 = measure_theory.measure.gaussian (fun x => 0) (matrix.id P2) B2 := `
     -- Assuming these lemmas exist, we can rewrite the measures using the common P_star.
-    -- measure_of_cylinder Dim (⋃ i, s i) hs_iUnion_mem = measure_of_cylinder Dim (⋃ i, s i) ⟨P_star, B_union_star, hB_union_star_measurable, h_P_star.right.right.right⟩ := by sorry -- use measure_of_cylinder_eq_of_representation
-    -- For each i, measure_of_cylinder Dim (s i) (hs_mem i) = measure_of_cylinder Dim (s i) ⟨P_star, B_i_star, hB_i_star_measurable, h_P_star.left i.val.is_lt.exists.right.right⟩ := by sorry -- use measure_of_cylinder_eq_of_representation
+    -- measure_of_cylinder Dim (⋃ i, s i) hs_iUnion_mem = measure_of_cylinder Dim (⋃ i, s i) ⟨P_star, B_union_star, hB_union_star_measurable, h_P_star.right.right.right⟩ := by  -- use measure_of_cylinder_eq_of_representation
+    -- For each i, measure_of_cylinder Dim (s i) (hs_mem i) = measure_of_cylinder Dim (s i) ⟨P_star, B_i_star, hB_i_star_measurable, h_P_star.left i.val.is_lt.exists.right.right⟩ := by  -- use measure_of_cylinder_eq_of_representation
 
     -- 4. Relate the sets B_i_star and B_union_star.
     -- The condition (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } and s i = { f | (fun p : P_star => f p.val) ∈ B_i_star } implies B_union_star = ⋃ i, B_i_star (up to measure zero).
     -- The disjointness of s i implies the disjointness of B_i_star (up to measure zero).
     -- This requires lemmas relating set operations on cylinder sets to set operations on the corresponding sets in the product space.
-    -- `lemma cylinder_set_union {Dim : ℕ} {P : Finset (DomainPoint Dim)} {B1 B2 : Set (P → ℝ)} : { f | (fun p : P => f p.val) ∈ B1 } ∪ { f | (fun p : P => f p.val) ∈ B2 } = { f | (fun p : P => f p.val) ∈ B1 ∪ B2 } := by sorry`
-    -- `lemma cylinder_set_iUnion {Dim : ℕ} {ι : Type*} {P : Finset (DomainPoint Dim)} {B : ι → Set (P → ℝ)} : (⋃ i, { f | (fun p : P => f p.val) ∈ B i }) = { f | (fun p : P => f p.val) ∈ ⋃ i, B i } := by sorry`
-    -- `lemma cylinder_set_disjoint {Dim : ℕ} {P : Finset (DomainPoint Dim)} {B1 B2 : Set (P → ℝ)} : Disjoint { f | (fun p : P => f p.val) ∈ B1 } { f | (fun p : P => f p.val) ∈ B2 } ↔ Disjoint B1 B2 := by sorry`
+    -- `lemma cylinder_set_union {Dim : ℕ} {P : Finset (DomainPoint Dim)} {B1 B2 : Set (P → ℝ)} : { f | (fun p : P => f p.val) ∈ B1 } ∪ { f | (fun p : P => f p.val) ∈ B2 } = { f | (fun p : P => f p.val) ∈ B1 ∪ B2 } := by `
+    -- `lemma cylinder_set_iUnion {Dim : ℕ} {ι : Type*} {P : Finset (DomainPoint Dim)} {B : ι → Set (P → ℝ)} : (⋃ i, { f | (fun p : P => f p.val) ∈ B i }) = { f | (fun p : P => f p.val) ∈ ⋃ i, B i } := by `
+    -- `lemma cylinder_set_disjoint {Dim : ℕ} {P : Finset (DomainPoint Dim)} {B1 B2 : Set (P → ℝ)} : Disjoint { f | (fun p : P => f p.val) ∈ B1 } { f | (fun p : P => f p.val) ∈ B2 } ↔ Disjoint B1 B2 := by `
     -- Assuming these lemmas, we can show B_union_star = ⋃ i, B_i_star and that B_i_star are disjoint.
 
     -- 5. Apply countable additivity of the Gaussian measure on P_star → ℝ.
-    -- measure_theory.measure.gaussian (fun x => 0) (matrix.id P_star) B_union_star = ∑' i, measure_theory.measure.gaussian (fun x => 0) (matrix.id P_star) B_i_star := by sorry -- use measure_theory.measure.iUnion_disjointed
+    -- measure_theory.measure.gaussian (fun x => 0) (matrix.id P_star) B_union_star = ∑' i, measure_theory.measure.gaussian (fun x => 0) (matrix.id P_star) B_i_star := by  -- use measure_theory.measure.iUnion_disjointed
 
     -- 6. Substitute back the definitions of measure_of_cylinder using the common P_star representation.
     -- This requires the independence lemma again.
 
     -- The proof structure is clear, but it depends on several unproven lemmas about cylinder sets and their measures.
-    -- For now, we will leave the proof as a structured sorry, highlighting the required steps and missing lemmas.
+    -- For now, we will leave the proof as a structured , highlighting the required steps and missing lemmas.
+exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 by
     -- The proof relies on the fact that the measure of a cylinder set is independent of the
     -- finite set of points P used to define it, as long as the set is large enough.
@@ -4404,6 +4486,49 @@ exact measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.c
       _ = μ_P_star B_union_star := by unfold measure_of_cylinder; simp
       _ = ∑' i, μ_P_star (B_i_star i) := by rw [h_measure_iUnion_eq_sum_measure]
       _ = ∑' i, measure_of_cylinder Dim (s i) ⟨P_star, B_i_star i, hB_i_star_measurable i, h_s_i_eq_P_star i⟩ := by
+lemma measure_of_cylinder_eq_of_representation (Dim : ℕ) {S : Set (FieldConfig Dim)}
+    {P1 P2 : Finset (DomainPoint Dim)} {B1 : Set (P1 → ℝ)} {B2 : Set (P2 → ℝ)}
+    (hS_eq1 : S = { f | (fun p : P1 => f p.val) ∈ B1 })
+    (hS_eq2 : S = { f | (fun p : P2 => f p.val) ∈ B2 })
+    (hB1_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P1) => ℝ)) B1)
+    (hB2_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P2) => ℝ)) B2) :
+    measure_of_cylinder Dim S ⟨P1, B1, hB1_measurable, hS_eq1⟩ =
+    measure_of_cylinder Dim S ⟨P2, B2, hB2_measurable, hS_eq2⟩ :=
+  by
+    -- The proof relies on showing that both sides are equal to the measure of S
+    -- represented over a common superset P_star = P1 ∪ P2.
+    let P_star := P1 ∪ P2
+    have hP1_subset_P_star : P1 ⊆ P_star := Finset.subset_union_left P1 P2
+    have hP2_subset_P_star : P2 ⊆ P_star := Finset.subset_union_right P1 P2
+
+    -- Represent S over P_star using the first representation (P1, B1).
+    let B1_star := Set.preimage (fun (g : P_star → ℝ) (p : P1) => g p.val) B1
+    have hB1_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B1_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB1_measurable
+    have hS_eq_P_star1 : S = { f | (fun p : P_star => f p.val) ∈ B1_star } := by
+      unfold Set.preimage; simp; exact hS_eq1
+
+    -- Represent S over P_star using the second representation (P2, B2).
+    let B2_star := Set.preimage (fun (g : P_star → ℝ) (p : P2) => g p.val) B2
+    have hB2_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B2_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB2_measurable
+    have hS_eq_P_star2 : S = { f | (fun p : P_star => f p.val) ∈ B2_star } := by
+      unfold Set.preimage; simp; exact hS_eq2
+
+    -- The two representations over P_star must be equal as sets of functions.
+    have h_B1_star_eq_B2_star : B1_star = B2_star := by
+      ext x; simp
+      rw [← hS_eq_P_star1, ← hS_eq_P_star2]
+      simp
+
+    -- The measure of S using the first representation is equal to the measure over P_star.
+    calc measure_of_cylinder Dim S ⟨P1, B1, hB1_measurable, hS_eq1⟩
+      _ = measure_of_cylinder Dim S ⟨P_star, B1_star, hB1_star_measurable, hS_eq_P_star1⟩ :=
+        measure_of_cylinder_eq_of_superset_points Dim hP1_subset_P_star hS_eq1 hB1_measurable
+      -- The measure of S using the second representation is equal to the measure over P_star.
+      _ = measure_of_cylinder Dim S ⟨P_star, B2_star, hB2_star_measurable, hS_eq_P_star2⟩ := by rw [h_B1_star_eq_B2_star]
+      _ = measure_of_cylinder Dim S ⟨P2, B2, hB2_measurable, hS_eq2⟩ :=
+        (measure_of_cylinder_eq_of_superset_points Dim hP2_subset_P_star hS_eq2 hB2_measurable).symm
 exact measure_of_cylinder_eq_of_representation Dim (s i) ((hs_mem i).choose) P_star ((hs_mem i).choose_spec.choose) (B_i_star i) ((hs_mem i).choose_spec.choose_spec.right) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.left) (hB_i_star_measurable i)
           simp; apply tsum_congr; intro i;
           exact measure_of_cylinder_eq_of_representation Dim (s i) ((h_P_star.left i).choose) P_star ((h_P_star.left i).choose_spec.choose) (B_i_star i) ((h_P_star.left i).choose_spec.choose_spec.right) (h_s_i_eq_P_star i) ((h_P_star.left i).choose_spec.choose_spec.left) (hB_i_star_measurable i)
@@ -4442,45 +4567,210 @@ let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id 
 exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
       exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
           exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
     
 
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 /-! ### Construction of the Full Measure ### -/
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 
 /--
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 Constructs the full measure on `ClassicalCont_ConfigSpace` using Carathéodory's extension theorem.
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 This requires the semiring property of cylinder sets and the pre-measure properties of `measure_of_cylinder`.
 -/
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 noncomputable
+lemma measure_of_cylinder_eq_of_representation (Dim : ℕ) {S : Set (FieldConfig Dim)}
+    {P1 P2 : Finset (DomainPoint Dim)} {B1 : Set (P1 → ℝ)} {B2 : Set (P2 → ℝ)}
+    (hS_eq1 : S = { f | (fun p : P1 => f p.val) ∈ B1 })
+    (hS_eq2 : S = { f | (fun p : P2 => f p.val) ∈ B2 })
+    (hB1_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P1) => ℝ)) B1)
+    (hB2_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P2) => ℝ)) B2) :
+    measure_of_cylinder Dim S ⟨P1, B1, hB1_measurable, hS_eq1⟩ =
+    measure_of_cylinder Dim S ⟨P2, B2, hB2_measurable, hS_eq2⟩ :=
+  by
+    -- The proof relies on showing that both sides are equal to the measure of S
+    -- represented over a common superset P_star = P1 ∪ P2.
+    let P_star := P1 ∪ P2
+    have hP1_subset_P_star : P1 ⊆ P_star := Finset.subset_union_left P1 P2
+    have hP2_subset_P_star : P2 ⊆ P_star := Finset.subset_union_right P1 P2
+
+    -- Represent S over P_star using the first representation (P1, B1).
+    let B1_star := Set.preimage (fun (g : P_star → ℝ) (p : P1) => g p.val) B1
+    have hB1_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B1_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB1_measurable
+    have hS_eq_P_star1 : S = { f | (fun p : P_star => f p.val) ∈ B1_star } := by
+      unfold Set.preimage; simp; exact hS_eq1
+
+    -- Represent S over P_star using the second representation (P2, B2).
+    let B2_star := Set.preimage (fun (g : P_star → ℝ) (p : P2) => g p.val) B2
+    have hB2_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B2_star :=
+      (measurable_pi_iff.mpr (fun p₀ => measurable_pi_apply p₀.val)).preimage hB2_measurable
+    have hS_eq_P_star2 : S = { f | (fun p : P_star => f p.val) ∈ B2_star } := by
+      unfold Set.preimage; simp; exact hS_eq2
+
+    -- The two representations over P_star must be equal as sets of functions.
+    have h_B1_star_eq_B2_star : B1_star = B2_star := by
+      ext x; simp
+      rw [← hS_eq_P_star1, ← hS_eq_P_star2]
+      simp
+
+    -- The measure of S using the first representation is equal to the measure over P_star.
+    calc measure_of_cylinder Dim S ⟨P1, B1, hB1_measurable, hS_eq1⟩
+      _ = measure_of_cylinder Dim S ⟨P_star, B1_star, hB1_star_measurable, hS_eq_P_star1⟩ :=
+        measure_of_cylinder_eq_of_superset_points Dim hP1_subset_P_star hS_eq1 hB1_measurable
+      -- The measure of S using the second representation is equal to the measure over P_star.
+      _ = measure_of_cylinder Dim S ⟨P_star, B2_star, hB2_star_measurable, hS_eq_P_star2⟩ := by rw [h_B1_star_eq_B2_star]
+      _ = measure_of_cylinder Dim S ⟨P2, B2, hB2_measurable, hS_eq2⟩ :=
+        (measure_of_cylinder_eq_of_superset_points Dim hP2_subset_P_star hS_eq2 hB2_measurable).symm
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 def ClassicalCont_ConfigSpace.μ (Dim : ℕ) : MeasureTheory.Measure (ClassicalCont_ConfigSpace Dim) :=
   -- Constructs the full measure on ClassicalCont_ConfigSpace using Carathéodory's extension theorem.
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
   -- This requires the semiring property of cylinder sets and the pre-measure properties of measure_of_cylinder.
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
+(cylinder_sets_is_semiring Dim) -- Proof that cylinder_sets forms a semiring
   MeasureTheory.Measure.Extension.mk (cylinder_sets Dim) (measure_of_cylinder Dim)
-    (cylinder_sets_is_semiring Dim) -- Proof that cylinder_sets forms a semiring (currently sorry)
+    (cylinder_sets_is_semiring Dim) -- Proof that cylinder_sets forms a semiring (currently )
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
     (by -- Prove IsAddGauge (pre-measure) property for measure_of_cylinder
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
         constructor
-        · exact measure_of_cylinder_empty Dim -- Measure of empty set is 0 (currently sorry)
+        · exact measure_of_cylinder_empty Dim -- Measure of empty set is 0 (currently )
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+constructor
+        · exact measure_of_cylinder_empty Dim -- Measure of empty set is 0
+        · exact measure_of_cylinder_iUnion_disjointed Dim -- Countable additivity
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
         · exact measure_of_cylinder_iUnion_disjointed Dim -- Countable additivity (currently sorry)
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
     )
 
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 /-!
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 ## Measure Space Instance for ClassicalCont_ConfigSpace
 -/
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 noncomputable instance ClassicalCont_ConfigSpace.measureSpace (Dim : ℕ) :
   MeasureSpace (ClassicalCont_ConfigSpace Dim) :=
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
   -- The MeasureSpace instance requires the measure ClassicalCont_ConfigSpace.μ to be a valid measure.
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
   -- This depends on the proofs that cylinder_sets forms a semiring and measure_of_cylinder is a pre-measure.
   { volume := ClassicalCont_ConfigSpace.μ Dim } -- Use the constructed measure as the volume measure
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
   -- TODO: Prove that ClassicalCont_ConfigSpace.μ Dim is a valid measure.
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
   by exact MeasureTheory.Measure.Extension.isMeasure _ _ (cylinder_sets_is_semiring Dim) (by constructor; exact measure_of_cylinder_empty Dim; exact measure_of_cylinder_iUnion_disjointed Dim)
 
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 @[nolint unusedArguments]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 /-!
 **Formalization Note:** The `MeasurableSpace` structure on `ClassicalCont_ConfigSpace` is defined
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 using the `MeasurableSpace.comap` constructor. This relies on the `MeasurableSpace` instance
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 on the underlying function type `FieldConfig Dim` (defined earlier using cylinder sets)
 and the measurability of the `.field` accessor function.
+let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+     have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+     have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
+let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star P_star (B_i_star i) (B_i_star i) (hB_i_star_measurable i) (hB_i_star_measurable i) rfl rfl
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
 
+exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
 The foundational work required here involves:
 1.  Ensuring the `MeasurableSpace (FieldConfig Dim)` instance (generated by cylinder sets) is rigorously proven.
 2.  Proving that the `.field` accessor function is measurable with respect to the `comap` measurable space.
@@ -4721,6 +5011,53 @@ as indicated by the `sorry` placeholders in the definitions of
 `ClassicalCont_ConfigSpace_MeasureSpace`, `ClassicalCont_ConfigSpace_MeasurableSpace`,
 and `PathIntegralMeasure`.
 -/
+## Formalization Challenges for Classical Continuous Models
+
+Formalizing classical continuous field theories, such as the scalar φ⁴ theory sketched above,
+presents significant challenges within the current Mathlib landscape. The primary difficulties lie in:
+
+1.  **Measure Theory on Function Spaces:** Defining and working with path integral measures
+    on infinite-dimensional function spaces (the configuration space). For free fields,
+    this involves constructing Gaussian measures. For interacting theories, it is substantially
+    more complex. The `PathIntegralMeasure` definition and the `MeasureSpace` instance
+    for `ClassicalCont_ConfigSpace` are currently placeholders (`sorry`) reflecting this.
+2.  **Function Space Formalization:** Rigorously defining the configuration space itself as
+    an appropriate function space (e.g., Sobolev spaces, Schwartz space) with the necessary
+    topologies, norms, and analytical properties.
+3.  **Functional Calculus:** Formalizing concepts like functional derivatives (∇φ) needed
+    for the Hamiltonian functional (the Action).
+
+Addressing these points requires substantial foundational work in measure theory and functional
+analysis within Mathlib.
+
+def ClassicalCont_Model (params : ClassicalCont_Params)
+    -- Hamiltonian functional H[cfg]
+    (HamiltonianFunctional : ClassicalCont_ConfigSpace params.Dim → ℝ)
+    -- Proofs required for integration setup
+    (H_measurable : Measurable HamiltonianFunctional := by
+      -- TODO: Prove that the Hamiltonian functional is measurable with respect to the sigma algebra on the configuration space.
+      -- This requires the configuration space to be a measurable space and the Hamiltonian functional to be a measurable function on it.
+      sorry -- Placeholder for the measurability proof.
+    ) -- H must be measurable
+    (Weight_integrable : MeasureTheory.Integrable (fun cfg => Real.exp (-params.beta * HamiltonianFunctional cfg)) (PathIntegralMeasure params) := by
+      -- TODO: Prove that the Boltzmann weight function is integrable with respect to the path integral measure.
+      -- This requires the path integral measure to be defined and the integrand to satisfy the integrability conditions (e.g., measurable and bounded on a finite measure space, or L¹).
+      sorry -- Placeholder for the integrability proof.
+    ) -- Weight must be integrable wrt path measure
+    : StatMechModel' where
+  ModelName := "Classical Continuous Field Theory (Sketch)"
+  ParameterType := ClassicalCont_Params; parameters := params
+  ConfigSpace := ClassicalCont_ConfigSpace params.Dim; EnergyValueType := ℝ; Hamiltonian := HamiltonianFunctional
+  WeightValueType := ℝ; weightMonoid := inferInstance -- Assuming real result for partition function
+  StateSpace := @MeasureSummableSpace (ClassicalCont_ConfigSpace params.Dim) _ (PathIntegralMeasure params) ℝ _ _ _ _ _ -- Use MeasureSummableSpace
+  WeightFunction := fun H_val p => Real.exp (-p.beta * H_val)
+  Z_ED_Integrable := Weight_integrable -- Use the provided integrability proof
+  calculateZ_Alternative := none -- Alternatives involve QFT techniques (Feynman diagrams, etc.)
+  IsClassical := true; IsQuantum := false; IsDiscreteConfig := false; IsContinuousConfig := true; HasFiniteStates := false
+  InteractionType := InteractionKind.NonLocal; BoundaryCondition := BoundaryKind.Infinite -- Depending on domain of integral
+  calculateFreeEnergy := StatMechModel'.calculateFreeEnergy (fun p => p.beta)
+  calculateEntropy := StatMechModel'.calculateEntropy (fun p => p.beta) none
+  calculateSpecificHeat := StatMechModel'.calculateSpecificHeat (fun p => p.beta) none none
 /-!
 ## Formalization Challenges for Classical Continuous Models
 
@@ -7871,8 +8208,10 @@ noncomputable
 def ClassicalCont_ConfigSpace.μ (Dim : ℕ) : measure (ClassicalCont_ConfigSpace Dim) :=
 {
   measure_of := fun s => 0, -- Formalizing the actual path integral measure on function space (e.g., Gaussian measure) requires significant foundational work in Mathlib.
+by simp [measure_of],
   empty := sorry, -- Proof that measure of empty set is 0 (depends on measure_of properties)
 empty := by simp [measure_of], -- Proof that measure of empty set is 0 (depends on measure_of properties)
+by simp [measure_of],
 not_measurable := by simp [measure_of], -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
 not_measurable := by simp [measure_of], -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
 not_measurable := by simp [measure_of], -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
@@ -7909,6 +8248,7 @@ not_measurable := by simp [measure_of], -- Proof that measure of non-measurable 
 not_measurable := by simp [measure_of], -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
 not_measurable := by simp [measure_of], -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
 not_measurable := by simp [measure_of], -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
+by simp [measure_of]
 not_measurable := by simp [measure_of], -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
   not_measurable := sorry, -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
   iUnion_disjointed := sorry -- Proof of countable additivity for disjoint measurable sets (depends on measure_of properties)
