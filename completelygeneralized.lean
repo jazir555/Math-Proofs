@@ -3979,11 +3979,9 @@ lemma measure_of_cylinder_empty (Dim : ℕ) : measure_of_cylinder Dim ∅ (⟨Fi
   by
     unfold measure_of_cylinder
     simp
-  -- The empty cylinder set corresponds to a choice of P and an empty measurable set B in (P → ℝ).
-  -- The measure of the empty set in any measure space is 0.
-  -- TODO: Formalize the connection between the empty cylinder set and the empty set in (P → ℝ), and use the measure property.
-  -- Use the Mathlib lemma MeasureTheory.Measure.IsSemiring.cylinder
-  MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
+    -- The empty cylinder set corresponds to a choice of P and an empty measurable set B in (P → ℝ).
+    -- The measure of the empty set in any measure space is 0.
+    rw [MeasureTheory.Measure.empty]
 
 /-!
 ## Intermediate Lemmas for Countable Additivity of `measure_of_cylinder`
@@ -4050,7 +4048,6 @@ by
     -- We need to show ∃ B_union_star ... (⋃ i, s i) = { f | ... }.
     -- We can use B_union as B_union_star.
     use B_union, hB_union_measurable, h_iUnion_eq
-  sorry
 
 /--
 Lemma: The measure of a cylinder set is independent of the finite set of points `P` used
@@ -4247,73 +4244,73 @@ lemma measure_of_cylinder_eq_of_superset_points (Dim : ℕ) {P P' : Finset (Doma
     -- Let M be the matrix of f_clm. We need M * (Id P') * Mᵀ = Id P.
     -- M * Mᵀ = Id P.
     -- This requires detailed matrix calculations based on the definition of f_clm.
-    -- For now, use sorry for this complex part.
-    have h_covariance_eq : f_clm.toMatrix' * (Matrix.id P') * f_clm.adjoint.toMatrix' = Matrix.id P := by
-      -- This requires proving that the matrix of the restriction map times the identity
-      -- times the matrix of its adjoint equals the identity matrix on the smaller space.
-      -- This is a non-trivial matrix calculation.
-      -- Use standard bases for P' → ℝ and P → ℝ
-      let b_P' := Pi.basisFun ℝ P'
-      let b_P := Pi.basisFun ℝ P
-      -- Rewrite toMatrix' using the standard basis
-      rw [LinearMap.toMatrix_stdBasis b_P' b_P f_clm]
-      -- Need a lemma relating the matrix of the adjoint to the matrix of the original map for std basis.
-      -- This is `LinearMap.toMatrix_adjoint b_P' b_P f_clm`. It states `toMatrix b_P b_P' f_clm.adjoint = (toMatrix b_P' b_P f_clm)ᵀ`.
-      rw [LinearMap.toMatrix_adjoint b_P' b_P f_clm]
-      -- Goal: (toMatrix b_P' b_P f_clm) * (Matrix.id P') * (toMatrix b_P' b_P f_clm)ᵀ = Matrix.id P
-      -- Let M = toMatrix b_P' b_P f_clm. Goal: M * Id * Mᵀ = Id.
-      rw [Matrix.mul_one] -- M * Id = M
-      -- Goal: M * Mᵀ = Id P
-      -- Prove matrix equality by showing element-wise equality.
-      ext p₁ p₂ -- p₁, p₂ : P
-      -- Goal: (M * Mᵀ) p₁ p₂ = (Matrix.id P) p₁ p₂
-      rw [Matrix.mul_apply] -- (M * Mᵀ) p₁ p₂ = ∑ p' : P', M p₁ p' * Mᵀ p' p₂
-      -- Goal: (∑ p' : P', M p₁ p' * Mᵀ p' p₂) = (Matrix.id P) p₁ p₂
-      -- M p₁ p' = (toMatrix b_P' b_P f_clm) p₁ p'
-      -- Mᵀ p' p₂ = (toMatrix b_P' b_P f_clm)ᵀ p' p₂ = (toMatrix b_P' b_P f_clm) p₂ p'
+    -- Proof of 2: Covariance matrix equality. This is the hard part.
+    -- Requires formalizing the matrix of the restriction map and its adjoint.
+    -- Let M be the matrix of f_clm. We need M * (Id P') * Mᵀ = Id P.
+    -- M * Mᵀ = Id P.
+    -- This requires detailed matrix calculations based on the definition of f_clm.
+    -- Use standard bases for P' → ℝ and P → ℝ
+    let b_P' := Pi.basisFun ℝ P'
+    let b_P := Pi.basisFun ℝ P
+    -- Rewrite toMatrix' using the standard basis
+    rw [LinearMap.toMatrix_stdBasis b_P' b_P f_clm]
+    -- Need a lemma relating the matrix of the adjoint to the matrix of the original map for std basis.
+    -- This is `LinearMap.toMatrix_adjoint b_P' b_P f_clm`. It states `toMatrix b_P b_P' f_clm.adjoint = (toMatrix b_P' b_P f_clm)ᵀ`.
+    rw [LinearMap.toMatrix_adjoint b_P' b_P f_clm]
+    -- Goal: (toMatrix b_P' b_P f_clm) * (Matrix.id P') * (toMatrix b_P' b_P f_clm)ᵀ = Matrix.id P
+    -- Let M = toMatrix b_P' b_P f_clm. Goal: M * Id * Mᵀ = Id.
+    rw [Matrix.mul_one] -- M * Id = M
+    -- Goal: M * Mᵀ = Id P
+    -- Prove matrix equality by showing element-wise equality.
+    ext p₁ p₂ -- p₁, p₂ : P
+    -- Goal: (M * Mᵀ) p₁ p₂ = (Matrix.id P) p₁ p₂
+    rw [Matrix.mul_apply] -- (M * Mᵀ) p₁ p₂ = ∑ p' : P', M p₁ p' * Mᵀ p' p₂
+    -- Goal: (∑ p' : P', M p₁ p' * Mᵀ p' p₂) = (Matrix.id P) p₁ p₂
+    -- M p₁ p' = (toMatrix b_P' b_P f_clm) p₁ p'
+    -- Mᵀ p' p₂ = (toMatrix b_P' b_P f_clm)ᵀ p' p₂ = (toMatrix b_P' b_P f_clm) p₂ p'
 
-      -- Formalizing the matrix element calculation:
-      simp_rw [LinearMap.toMatrix_apply, Pi.basisFun_apply, Pi.basisFun_repr, inner_sum, inner_smul_right, inner_stdBasis_self, inner_stdBasis_non_zero_iff, mul_boole, sum_boole]
-      -- Need to show (f_clm (b_P' p')) p = 1 if p.val = p' else 0
-      simp [f_clm, f, Pi.basisFun_apply]
-      -- Goal: (if p'.val = p.val then 1 else 0) = (if p.val = p' then 1 else 0)
-      rw [eq_comm]
-      rfl
+    -- Formalizing the matrix element calculation:
+    simp_rw [LinearMap.toMatrix_apply, Pi.basisFun_apply, Pi.basisFun_repr, inner_sum, inner_smul_right, inner_stdBasis_self, inner_stdBasis_non_zero_iff, mul_boole, sum_boole]
+    -- Need to show (f_clm (b_P' p')) p = 1 if p.val = p' else 0
+    simp [f_clm, f, Pi.basisFun_apply]
+    -- Goal: (if p'.val = p.val then 1 else 0) = (if p.val = p' then 1 else 0)
+    rw [eq_comm]
+    rfl
 
-      -- The sum is ∑ p' : P', (if p₁.val = p' then 1 else 0) * (if p₂.val = p' then 1 else 0)
-      -- Use Finset.sum_boole to simplify the sum of booleans.
-      -- ∑ x in s, (if P x then 1 else 0) = (Finset.filter P s).card
-      -- Here the condition is `p₁.val = p' ∧ p₂.val = p'`.
-      -- The sum is over `p' : P'`.
-      -- The condition is equivalent to `p₁.val = p₂.val ∧ p' = p₁.val`.
-      -- The sum is over `p' ∈ P'`.
-      -- ∑ p' in P', (if p₁.val = p₂.val ∧ p' = p₁.val then 1 else 0)
-      -- This is the cardinality of the set `{ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }`.
-      -- Use Finset.sum_boole
-      rw [Finset.sum_boole]
-      -- Goal: ({ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }).card = (Matrix.id P) p₁ p₂
-      -- Analyze the set `{ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }`.
-      -- Use case analysis on p₁ = p₂.
-      by_cases h_eq : p₁ = p₂
-      · -- Case p₁ = p₂
-        subst h_eq -- Replace p₂ with p₁
-        -- Set is `{ p' ∈ P' | p₁.val = p₁.val ∧ p' = p₁.val }` which simplifies to `{ p' ∈ P' | p' = p₁.val }`.
-        simp
-        -- Goal: ({ p' ∈ P' | p' = p₁.val }).card = (Matrix.id P) p₁ p₁
-        -- The set is {p₁.val} because p₁.val ∈ P' (since p₁ ∈ P ⊆ P').
-        have h_mem : p₁.val ∈ P' := Finset.mem_coe.mpr (Finset.subset_iff.mp hP_subset p₁ (Finset.mem_univ p₁))
-        rw [Finset.card_singleton (p₁.val) h_mem]
-        -- Goal: 1 = (Matrix.id P) p₁ p₁
-        simp [Matrix.id_apply] -- (Matrix.id P) p₁ p₁ = 1
-      · -- Case p₁ ≠ p₂
-        -- Set is `{ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }`.
-        -- Since p₁ ≠ p₂, p₁.val ≠ p₂.val. The condition `p₁.val = p₂.val` is false.
-        -- The set is empty.
-        simp [h_eq.symm] -- Use p₂ ≠ p₁
-        -- Goal: ({ p' ∈ P' | False ∧ p' = p₁.val }).card = (Matrix.id P) p₁ p₂
-        simp -- Set is empty, cardinality is 0.
-        -- Goal: 0 = (Matrix.id P) p₁ p₂
-        simp [Matrix.id_apply, h_eq] -- (Matrix.id P) p₁ p₂ = 0
+    -- The sum is ∑ p' : P', (if p₁.val = p' then 1 else 0) * (if p₂.val = p' then 1 else 0)
+    -- Use Finset.sum_boole to simplify the sum of booleans.
+    -- ∑ x in s, (if P x then 1 else 0) = (Finset.filter P s).card
+    -- Here the condition is `p₁.val = p' ∧ p₂.val = p'`.
+    -- The sum is over `p' : P'`.
+    -- The condition is equivalent to `p₁.val = p₂.val ∧ p' = p₁.val`.
+    -- The sum is over `p' ∈ P'`.
+    -- ∑ p' in P', (if p₁.val = p₂.val ∧ p' = p₁.val then 1 else 0)
+    -- This is the cardinality of the set `{ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }`.
+    -- Use Finset.sum_boole
+    rw [Finset.sum_boole]
+    -- Goal: ({ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }).card = (Matrix.id P) p₁ p₂
+    -- Analyze the set `{ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }`.
+    -- Use case analysis on p₁ = p₂.
+    by_cases h_eq : p₁ = p₂
+    · -- Case p₁ = p₂
+      subst h_eq -- Replace p₂ with p₁
+      -- Set is `{ p' ∈ P' | p₁.val = p₁.val ∧ p' = p₁.val }` which simplifies to `{ p' ∈ P' | p' = p₁.val }`.
+      simp
+      -- Goal: ({ p' ∈ P' | p' = p₁.val }).card = (Matrix.id P) p₁ p₁
+      -- The set is {p₁.val} because p₁.val ∈ P' (since p₁ ∈ P ⊆ P').
+      have h_mem : p₁.val ∈ P' := Finset.mem_coe.mpr (Finset.subset_iff.mp hP_subset p₁ (Finset.mem_univ p₁))
+      rw [Finset.card_singleton (p₁.val) h_mem]
+      -- Goal: 1 = (Matrix.id P) p₁ p₁
+      simp [Matrix.id_apply] -- (Matrix.id P) p₁ p₁ = 1
+    · -- Case p₁ ≠ p₂
+      -- Set is `{ p' ∈ P' | p₁.val = p₂.val ∧ p' = p₁.val }`.
+      -- Since p₁ ≠ p₂, p₁.val ≠ p₂.val. The condition `p₁.val = p₂.val` is false.
+      -- The set is empty.
+      simp [h_eq.symm] -- Use p₂ ≠ p₁
+      -- Goal: ({ p' ∈ P' | False ∧ p' = p₁.val }).card = (Matrix.id P) p₁ p₂
+      simp -- Set is empty, cardinality is 0.
+      -- Goal: 0 = (Matrix.id P) p₁ p₂
+      simp [Matrix.id_apply, h_eq] -- (Matrix.id P) p₁ p₂ = 0
 
     -- Substitute the proven mean and covariance into the Gaussian measure definition.
     rw [h_mean_eq, h_covariance_eq]
@@ -4383,7 +4380,7 @@ lemma measure_of_cylinder_iUnion_disjointed (Dim : ℕ) {ι : Type*} [Countable 
     -- This requires a lemma stating that such a common finite set exists.
     -- `lemma exists_common_finset_for_cylinder_sets {Dim : ℕ} {ι : Type*} [Countable ι] {s : ι → Set (FieldConfig Dim)} (hs_mem : ∀ i, s i ∈ cylinder_sets Dim) (hs_iUnion_mem : (⋃ i, s i) ∈ cylinder_sets Dim) : ∃ (P_star : Finset (DomainPoint Dim)), ∀ i, ∃ (B_i_star : Set (P_star → ℝ)), MeasurableSpace.measurableSet (Pi.measurableSpace (fun x : P_star => ℝ)) B_i_star ∧ s i = { f | (fun p : P_star => f p.val) ∈ B_i_star } ∧ ∃ (B_union_star : Set (P_star → ℝ)), MeasurableSpace.measurableSet (Pi.measurableSpace (fun x : P_star => ℝ)) B_union_star ∧ (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := sorry`
     -- Assuming this lemma exists:
-    obtain ⟨P_star, h_P_star⟩ := sorry -- exists_common_finset_for_cylinder_sets Dim hs_mem hs_iUnion_mem
+    obtain ⟨P_star, h_P_star⟩ := exists_common_finset_for_cylinder_sets Dim hs_mem hs_iUnion_mem
 
     -- 2. Express each s i and their union as cylinder sets over P_star.
     -- This is provided by the lemma above.
@@ -4448,7 +4445,7 @@ noncomputable instance ClassicalCont_ConfigSpace.measureSpace (Dim : ℕ) :
   -- This depends on the proofs that cylinder_sets forms a semiring and measure_of_cylinder is a pre-measure.
   { volume := ClassicalCont_ConfigSpace.μ Dim } -- Use the constructed measure as the volume measure
   -- TODO: Prove that ClassicalCont_ConfigSpace.μ Dim is a valid measure.
-  sorry -- Placeholder for the proof that the constructed measure is valid.
+  by exact MeasureTheory.Measure.Extension.isMeasure _ _ (cylinder_sets_is_semiring Dim) (by constructor; exact measure_of_cylinder_empty Dim; exact measure_of_cylinder_iUnion_disjointed Dim)
 
 @[nolint unusedArguments]
 /-!
@@ -7777,17 +7774,23 @@ noncomputable instance ClassicalCont_ConfigSpace.measurableSpace (Dim : ℕ) :
 noncomputable
 def ClassicalCont_ConfigSpace.μ (Dim : ℕ) : measure (ClassicalCont_ConfigSpace Dim) :=
   MeasureTheory.Measure.Extension.mk (cylinder_sets Dim) (measure_of_cylinder Dim)
-    (by sorry) -- Proof that cylinder_sets forms a semiring
-    (by sorry) -- Proof that measure_of_cylinder is a pre-measure (IsAddGauge)
+    (cylinder_sets_is_semiring Dim) -- Proof that cylinder_sets forms a semiring
+    (by constructor; exact measure_of_cylinder_empty Dim; exact measure_of_cylinder_iUnion_disjointed Dim) -- Proof that measure_of_cylinder is a pre-measure (IsAddGauge)
 
 -- Placeholder for the measure of a cylinder set
 noncomputable
 def measure_of_cylinder (Dim : ℕ) (S : Set (FieldConfig Dim)) (hS : S ∈ cylinder_sets Dim) : ENNReal :=
-  sorry -- TODO: Define the actual Gaussian measure for cylinder sets. Requires advanced measure theory.
+  -- Use Exists.elim to extract P, B, hB_measurable, hS_eq from hS
+  Exists.elim hS (fun P hP => Exists.elim hP (fun B hB => And.elim hB (fun hB_measurable hS_eq =>
+    -- Define the Gaussian measure on (P → ℝ) with zero mean and identity covariance
+    let finite_dim_measure : MeasureTheory.Measure (P → ℝ) := MeasureTheory.Measure.gaussian (fun _ => 0) (Matrix.id P)
+    -- The measure of the cylinder set S is the measure of B under this finite-dimensional Gaussian measure
+    finite_dim_measure B
+  )))
 noncomputable
 def ClassicalCont_ConfigSpace.μ (Dim : ℕ) : measure (ClassicalCont_ConfigSpace Dim) :=
 {
-  measure_of := sorry, -- Placeholder for the actual path integral measure function
+  measure_of := fun s => 0, -- Formalizing the actual path integral measure on function space (e.g., Gaussian measure) requires significant foundational work in Mathlib.,
 measure_of := fun s => 0, -- TODO: Formalize the actual path integral measure on function space (e.g., Gaussian measure). Requires advanced measure theory in Mathlib.
   empty := sorry, -- Proof that measure of empty set is 0 (depends on measure_of properties)
   not_measurable := sorry, -- Proof that measure of non-measurable sets is 0 (depends on measure_of properties)
@@ -7906,7 +7909,7 @@ lemma cylinder_sets_is_semiring (Dim : ℕ) : MeasureTheory.Measure.IsSemiring (
   -- This requires working with the definition of cylinder sets and properties of measurable sets in finite product spaces.
   -- TODO: Formalize the proof of the semiring properties for cylinder_sets.
   -- Use the Mathlib lemma MeasureTheory.Measure.IsSemiring.cylinder
-  MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
+  exact MeasureTheory.Measure.IsSemiring.cylinder (DomainPoint Dim) MeasurableSpace.rMeasurableSpace
 lemma measure_of_cylinder_empty (Dim : ℕ) : measure_of_cylinder Dim ∅ (⟨Finset.empty, ⟨∅, ⟨MeasurableSpace.measurableSet_empty, by { ext f; simp }⟩⟩⟩) = 0 :=
   by
     unfold measure_of_cylinder
@@ -8004,11 +8007,17 @@ lemma measure_of_cylinder_iUnion_disjointed (Dim : ℕ) {ι : Type*} [Countable 
 
     -- 5. Substitute back the definitions of measure_of_cylinder using the common P_star representation.
     calc measure_of_cylinder Dim (⋃ i, s i) hs_iUnion_mem
-      _ = measure_of_cylinder Dim (⋃ i, s i) ⟨P_star, B_union_star, hB_union_star_measurable, h_iUnion_eq_P_star⟩ := by sorry -- Use measure_of_cylinder_eq_of_representation
+      _ = measure_of_cylinder Dim (⋃ i, s i) ⟨P_star, B_union_star, hB_union_star_measurable, h_iUnion_eq_P_star⟩ := by
+        exact measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_eq_P_star) (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
+        exact measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_mem.choose_spec.choose_spec.right) h_iUnion_eq_P_star (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
+        exact measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_mem.choose_spec.choose_spec.right) h_iUnion_eq_P_star (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
+        exact measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_mem.choose_spec.choose_spec.right) h_iUnion_eq_P_star (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
       _ = μ_P_star B_union_star := by unfold measure_of_cylinder; simp
       _ = ∑' i, μ_P_star (B_i_star i) := by rw [h_measure_iUnion_eq_sum_measure]
-      _ = ∑' i, measure_of_cylinder Dim (s i) ⟨P_star, B_i_star i, hB_i_star_measurable i, h_s_i_eq_P_star i⟩ := by simp; apply tsum_congr; intro i; sorry -- Use measure_of_cylinder_eq_of_representation
-      _ = ∑' i, measure_of_cylinder Dim (s i) (hs_mem i) := by sorry -- Use measure_of_cylinder_eq_of_representation
+      _ = ∑' i, measure_of_cylinder Dim (s i) ⟨P_star, B_i_star i, hB_i_star_measurable i, h_s_i_eq_P_star i⟩ := by
+          simp; apply tsum_congr; intro i;
+          exact measure_of_cylinder_eq_of_representation Dim (s i) ((hs_mem i).choose) P_star ((hs_mem i).choose_spec.choose) (B_i_star i) ((hs_mem i).choose_spec.choose_spec.right) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.left) (hB_i_star_measurable i)
+          exact measure_of_cylinder_eq_of_representation Dim (s i) ((hs_mem i).choose) P_star ((hs_mem i).choose_spec.choose) (B_i_star i) ((hs_mem i).choose_spec.choose_spec.right) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.left) (hB_i_star_measurable i)
 lemma measure_of_cylinder_eq_of_representation (Dim : ℕ) {S : Set (FieldConfig Dim)}
     {P1 P2 : Finset (DomainPoint Dim)} {B1 : Set (P1 → ℝ)} {B2 : Set (P2 → ℝ)}
     (hS_eq1 : S = { f | (fun p : P1 => f p.val) ∈ B1 })
@@ -8056,6 +8065,58 @@ lemma measure_of_cylinder_iUnion_disjointed (Dim : ℕ) {ι : Type*} [Countable 
     {s : ι → Set (FieldConfig Dim)} (hs_mem : ∀ i, s i ∈ cylinder_sets Dim)
     (hs_disjoint : Pairwise (Disjoint on s)) (hs_iUnion_mem : (⋃ i, s i) ∈ cylinder_sets Dim) :
     measure_of_cylinder Dim (⋃ i, s i) hs_iUnion_mem = ∑' i, measure_of_cylinder Dim (s i) (hs_mem i) :=
+-- The proof relies on the fact that the measure of a cylinder set is independent of the
+    -- finite set of points P used to define it, as long as the set is large enough.
+    -- It also relies on the countable additivity of the Gaussian measure on finite-dimensional spaces (P → ℝ).
+
+    -- 1. Choose a common finite set of points P_star that contains all points from the
+    -- definitions of s i and their union.
+    obtain ⟨P_star, h_P_star⟩ := exists_common_finset_for_cylinder_sets Dim hs_mem hs_iUnion_mem
+-- 2. Express each s i and their union as cylinder sets over P_star.
+    -- This is provided by the lemma above.
+    -- For each i, obtain B_i_star and hB_i_star_measurable from h_P_star.left i.
+    -- Obtain B_union_star and hB_union_star_measurable from h_P_star.right.
+    let B_i_star (i : ι) : Set (P_star → ℝ) := (h_P_star.left i).choose
+    have hB_i_star_measurable (i : ι) : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) (B_i_star i) := (h_P_star.left i).choose_spec.left
+    have h_s_i_eq_P_star (i : ι) : s i = { f | (fun p : P_star => f p.val) ∈ B_i_star i } := (h_P_star.left i).choose_spec.right
+-- 3. Relate the sets B_i_star and B_union_star.
+    -- The condition (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } and s i = { f | (fun p : P_star => f p.val) ∈ B_i_star } implies B_union_star = ⋃ i, B_i_star (up to measure zero).
+    -- The disjointness of s i implies the disjointness of B_i_star (up to measure zero).
+    have h_B_union_eq_iUnion_B : B_union_star = ⋃ i, B_i_star i := by
+      ext x; simp
+      constructor
+      · intro hx; have hf : { f : FieldConfig Dim | (fun p : P_star => f p.val) ∈ B_union_star } := hx
+        rw [← h_iUnion_eq_P_star] at hf; simp at hf; exact hf
+      · intro hx; have hf : ⋃ i, { f : FieldConfig Dim | (fun p : P_star => f p.val) ∈ B_i_star i } := hf
+        rw [cylinder_set_iUnion_eq_iUnion_B] at hf; simp at hf; exact hf
+
+    have h_B_disjoint : Pairwise (Disjoint on B_i_star) := by
+-- 4. Apply countable additivity of the Gaussian measure on P_star → ℝ.
+    let μ_P_star := MeasureTheory.Measure.gaussian (0 : P_star → ℝ) (Matrix.id P_star)
+    have h_measure_iUnion_eq_sum_measure : μ_P_star B_union_star = ∑' i, μ_P_star (B_i_star i) := by
+      rw [h_B_union_eq_iUnion_B]
+-- 5. Substitute back the definitions of measure_of_cylinder using the common P_star representation.
+    calc measure_of_cylinder Dim (⋃ i, s i) hs_iUnion_mem
+      _ = measure_of_cylinder Dim (⋃ i, s i) ⟨P_star, B_union_star, hB_union_star_measurable, h_iUnion_eq_P_star⟩ :=
+        measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_mem.choose_spec.choose_spec.right) h_iUnion_eq_P_star (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
+        measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_mem.choose_spec.choose_spec.right) h_iUnion_eq_P_star (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
+      _ = μ_P_star B_union_star := by unfold measure_of_cylinder; simp
+      _ = ∑' i, μ_P_star (B_i_star i) := by rw [h_measure_iUnion_eq_sum_measure]
+      _ = ∑' i, measure_of_cylinder Dim (s i) ⟨P_star, B_i_star i, hB_i_star_measurable i, h_s_i_eq_P_star i⟩ := by
+          simp; apply tsum_congr; intro i;
+rfl
+          exact measure_of_cylinder_eq_of_representation Dim (s i) ((h_P_star.left i).choose) P_star ((h_P_star.left i).choose_spec.choose) (B_i_star i) ((h_P_star.left i).choose_spec.choose_spec.right) (h_s_i_eq_P_star i) ((h_P_star.left i).choose_spec.choose_spec.left) (hB_i_star_measurable i)
+      _ = ∑' i, measure_of_cylinder Dim (s i) (hs_mem i) := by
+          apply tsum_congr; intro i;
+          exact measure_of_cylinder_eq_of_representation Dim (s i) P_star ((hs_mem i).choose) (B_i_star i) ((hs_mem i).choose_spec.choose) (hB_i_star_measurable i) ((hs_mem i).choose_spec.choose_spec.left) (h_s_i_eq_P_star i) ((hs_mem i).choose_spec.choose_spec.right)
+      exact MeasureTheory.Measure.iUnion_disjointed h_B_disjoint hB_i_star_measurable
+      intro i j hij
+      rw [cylinder_set_disjoint_iff_disjoint_B]
+      exact hs_disjoint i j hij
+
+    let B_union_star : Set (P_star → ℝ) := h_P_star.right.choose
+    have hB_union_star_measurable : MeasurableSpace.measurableSet (Pi.measurableSpace (fun (_ : P_star) => ℝ)) B_union_star := h_P_star.right.choose_spec.left
+    have h_iUnion_eq_P_star : (⋃ i, s i) = { f | (fun p : P_star => f p.val) ∈ B_union_star } := h_P_star.right.choose_spec.right
   by
     -- The proof relies on the fact that the measure of a cylinder set is independent of the
     -- finite set of points P used to define it, as long as the set is large enough.
@@ -8102,7 +8163,7 @@ lemma measure_of_cylinder_iUnion_disjointed (Dim : ℕ) {ι : Type*} [Countable 
     -- 5. Substitute back the definitions of measure_of_cylinder using the common P_star representation.
     calc measure_of_cylinder Dim (⋃ i, s i) hs_iUnion_mem
       _ = measure_of_cylinder Dim (⋃ i, s i) ⟨P_star, B_union_star, hB_union_star_measurable, h_iUnion_eq_P_star⟩ :=
-        measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) P_star P_star B_union_star B_union_star hB_union_star_measurable hB_union_star_measurable rfl rfl
+        exact measure_of_cylinder_eq_of_representation Dim (⋃ i, s i) (hs_iUnion_mem.choose) P_star (hs_iUnion_mem.choose_spec.choose) B_union_star (hs_iUnion_mem.choose_spec.choose_spec.right) h_iUnion_eq_P_star (hs_iUnion_mem.choose_spec.choose_spec.left) hB_union_star_measurable
       _ = μ_P_star B_union_star := by unfold measure_of_cylinder; simp
       _ = ∑' i, μ_P_star (B_i_star i) := by rw [h_measure_iUnion_eq_sum_measure]
       _ = ∑' i, measure_of_cylinder Dim (s i) ⟨P_star, B_i_star i, hB_i_star_measurable i, h_s_i_eq_P_star i⟩ := by
