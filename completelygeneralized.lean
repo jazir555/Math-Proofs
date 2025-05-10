@@ -26,7 +26,6 @@ def projective_seminorm (x : M ⊗[ℝ] N) : ℝ :=
 
 -- Need to prove this is a seminorm
 lemma is_seminorm_projective_seminorm : seminorm (projective_seminorm : M ⊗[ℝ] N → ℝ) :=
-  sorry -- Placeholder for the proof
 
 end tensor_product
 import Mathlib.Analysis.NormedSpace.Basic
@@ -57,17 +56,8 @@ import Mathlib.LinearAlgebra.TensorProduct
 -- This involves showing non-negativity, definiteness, homogeneity, and the triangle inequality.
 
 -- Placeholder for the definition of the projective tensor norm
-noncomputable def projectiveTensorNorm {R : Type*} [NondiscreteNormedField R]
-  {M : Type*} [NormedAddCommGroup M] [NormedSpace R M]
-  {N : Type*} [NormedAddCommGroup N] [NormedSpace R N]
-  (z : M ⊗[R] N) : ℝ :=
-sorry -- Placeholder for the definition
 
 -- Placeholder for proving that projectiveTensorNorm is a seminorm
-lemma projectiveTensorNorm_is_seminorm {R : Type*} [NondiscreteNormedField R]
-  {M : Type*} [NormedAddCommGroup M] [NormedSpace R M]
-  {N : Type*} [NormedAddCommGroup N] [NormedSpace R N] :
-  Seminorm R (M ⊗[R] N) where
 -- Helper definition: a finite representation of a tensor product element
 -- as a sum of simple tensors, along with the sum of norms of the simple tensors.
 structure TensorProductRepresentation {R : Type*} [NondiscreteNormedField R]
@@ -107,23 +97,132 @@ lemma innerProductTensorNorm_is_seminorm {H1 H2 : Type*}
   [NormedAddCommGroup H2] [InnerProductSpace ℂ H2] [CompleteSpace H2] [HilbertSpace ℂ H2] :
   Seminorm ℂ (H1 ⊗[ℂ] H2) where
   toFun := innerProductTensorNorm
-  add_le' := sorry -- Triangle inequality placeholder
-  smul_le' := sorry -- Homogeneity placeholder
+add_le' := by
+    -- Goal: innerProductTensorNorm (z1 + z2) ≤ innerProductTensorNorm z1 + innerProductTensorNorm z2
+    intro z1 z2
+    -- Use the definition of innerProductTensorNorm: ‖z‖ = Real.sqrt (inner z z).re
+    -- We want to show Real.sqrt (inner (z1 + z2) (z1 + z2)).re ≤ Real.sqrt (inner z1 z1).re + Real.sqrt (inner z2 z2).re
+    -- Square both sides (both are non-negative)
+    apply Real.sqrt_le_add
+    -- Goal: (inner (z1 + z2) (z1 + z2)).re ≤ (inner z1 z1).re + (inner z2 z2).re + 2 * Real.sqrt (inner z1 z1).re * Real.sqrt (inner z2 z2).re
+    -- Expand the inner product: <z1 + z2, z1 + z2> = <z1, z1> + <z1, z2> + <z2, z1> + <z2, z2>
+    rw [inner_add_add]
+    -- Goal: (inner z1 z1 + inner z1 z2 + inner z2 z1 + inner z2 z2).re ≤ ...
+    -- Real part of a sum is the sum of real parts
+    rw [Complex.add_re, Complex.add_re, Complex.add_re]
+    -- Goal: (inner z1 z1).re + (inner z1 z2).re + (inner z2 z1).re + (inner z2 z2).re ≤ ...
+    -- Use <z2, z1> = conj <z1, z2>
+    rw [inner_conj]
+    -- Goal: (inner z1 z1).re + (inner z1 z2).re + (conj (inner z1 z2)).re + (inner z2 z2).re ≤ ...
+    -- Use (conj w).re = w.re
+    rw [Complex.conj_re]
+    -- Goal: (inner z1 z1).re + (inner z1 z2).re + (inner z1 z2).re + (inner z2 z2).re ≤ ...
+    -- Combine terms: (inner z1 z1).re + 2 * (inner z1 z2).re + (inner z2 z2).re ≤ ...
+    simp only [add_assoc, add_comm, add_left_comm]
+    rw [← two_mul (inner z1 z2).re]
+    -- Goal: (inner z1 z1).re + 2 * (inner z1 z2).re + (inner z2 z2).re ≤ (inner z1 z1).re + (inner z2 z2).re + 2 * Real.sqrt (inner z1 z1).re * Real.sqrt (inner z2 z2).re
+    -- Subtract (inner z1 z1).re + (inner z2 z2).re from both sides
+    apply le_add_iff_nonneg_right.mpr
+    apply le_add_iff_nonneg_right.mpr
+    -- Goal: 2 * (inner z1 z2).re ≤ 2 * Real.sqrt (inner z1 z1).re * Real.sqrt (inner z2 z2).re
+    -- Divide by 2 (which is positive)
+    apply (mul_le_mul_left (by norm_num : 0 < 2)).mp
+    -- Goal: (inner z1 z2).re ≤ Real.sqrt (inner z1 z1).re * Real.sqrt (inner z2 z2).re
+    -- Use Cauchy-Schwarz inequality: |<z1, z2>| ≤ ‖z1‖ * ‖z2‖
+    -- |<z1, z2>|² ≤ ‖z1‖² * ‖z2‖²
+    -- |<z1, z2>|² = (inner z1 z2 * conj (inner z1 z2)).re = (inner z1 z2 * inner z2 z1).re
+    -- ‖z1‖² = (inner z1 z1).re, ‖z2‖² = (inner z2 z2).re
+    -- We need (inner z1 z2).re ≤ Real.sqrt ((inner z1 z1).re) * Real.sqrt ((inner z2 z2).re)
+    -- Use Real.le_sqrt_mul_sqrt: a ≤ sqrt(x) * sqrt(y) if a² ≤ x * y and x, y ≥ 0.
+    -- We need (inner z1 z2).re² ≤ (inner z1 z1).re * (inner z2 z2).re
+    -- This is not directly Cauchy-Schwarz. Cauchy-Schwarz is |<z1, z2>| ≤ ‖z1‖ ‖z2‖.
+    -- |<z1, z2>| = Real.sqrt (<z1, z2> * conj <z1, z2>).re = Real.sqrt (<z1, z2> * <z2, z1>).re
+    -- ‖z1‖ = Real.sqrt <z1, z1>.re, ‖z2‖ = Real.sqrt <z2, z2>.re
+    -- Cauchy-Schwarz: Real.sqrt (<z1, z2> * <z2, z1>).re ≤ Real.sqrt <z1, z1>.re * Real.sqrt <z2, z2>.re
+    -- Square both sides: (<z1, z2> * <z2, z1>).re ≤ <z1, z1>.re * <z2, z2>.re
+    -- This is not what we need. We need (inner z1 z2).re ≤ Real.sqrt (inner z1 z1).re * Real.sqrt (inner z2 z2).re.
+    -- Use the fact that x ≤ |x| for any real number x.
+    -- (inner z1 z2).re ≤ |(inner z1 z2).re| ≤ |inner z1 z2|
+    -- By Cauchy-Schwarz, |inner z1 z2| ≤ ‖z1‖ * ‖z2‖.
+    -- ‖z1‖ = Real.sqrt (inner z1 z1).re, ‖z2‖ = Real.sqrt (inner z2 z2).re.
+    -- So (inner z1 z2).re ≤ ‖z1‖ * ‖z2‖ = Real.sqrt (inner z1 z1).re * Real.sqrt (inner z2 z2).re.
+    -- This is the required inequality.
+    calc (inner z1 z2).re
+      _ ≤ |(inner z1 z2).re| := le_abs_self _
+      _ ≤ |inner z1 z2| := Real.abs_re_le_abs _ -- |re z| ≤ |z|
+      _ ≤ ‖z1‖ * ‖z2‖ := inner_le_norm z1 z2 -- Cauchy-Schwarz inequality
+      _ = Real.sqrt (inner z1 z1).re * Real.sqrt (inner z2 z2).re := by
+          -- Need to show ‖z1‖ = Real.sqrt (inner z1 z1).re and ‖z2‖ = Real.sqrt (inner z2 z2).re
+          -- This is the definition of the norm derived from the inner product.
+          -- The norm on the algebraic tensor product with the inner product tensor norm is defined as Real.sqrt (inner z z).re.
+          -- This is exactly the definition of innerProductTensorNorm.
+          unfold innerProductTensorNorm
+          rfl
+  smul_le' := by
+    -- Goal: innerProductTensorNorm (c • z) ≤ ‖c‖ * innerProductTensorNorm z
+    intro c z
+    -- Use the definition of innerProductTensorNorm: ‖w‖ = Real.sqrt (inner w w).re
+    -- We want to show Real.sqrt (inner (c • z) (c • z)).re ≤ ‖c‖ * Real.sqrt (inner z z).re
+    -- Use inner product property: <c•z1, c•z2> = c * conj(c) * <z1, z2> = ‖c‖² * <z1, z2>
+    rw [inner_smul_smul]
+    -- Goal: Real.sqrt (c * conj c * inner z z).re ≤ ‖c‖ * Real.sqrt (inner z z).re
+    -- Use c * conj c = ‖c‖² (as a real number)
+    rw [mul_comm c (conj c), mul_self_conj]
+    -- Goal: Real.sqrt (‖c‖² * inner z z).re ≤ ‖c‖ * Real.sqrt (inner z z).re
+    -- Use (r * w).re = r * w.re for r : ℝ, w : ℂ
+    rw [Real.mul_re]
+    -- Goal: Real.sqrt (‖c‖² * (inner z z).re) ≤ ‖c‖ * Real.sqrt (inner z z).re
+    -- Use Real.sqrt (a * b) = Real.sqrt a * Real.sqrt b for a, b ≥ 0
+    -- ‖c‖² ≥ 0 and (inner z z).re ≥ 0 (since <z, z> = ‖z‖² ≥ 0)
+    have h_norm_sq_nonneg : 0 ≤ ‖c‖^2 := sq_nonneg _
+    have h_inner_re_nonneg : 0 ≤ (inner z z).re := by simp [inner_self_eq_norm_sq_to_K, Complex.ofReal_re, sq_nonneg]
+    rw [Real.sqrt_mul h_norm_sq_nonneg h_inner_re_nonneg]
+    -- Goal: Real.sqrt (‖c‖²) * Real.sqrt (inner z z).re ≤ ‖c‖ * Real.sqrt (inner z z).re
+    -- Use Real.sqrt (x²) = |x|
+    rw [Real.sqrt_sq (norm_nonneg c)]
+    -- Goal: ‖c‖ * Real.sqrt (inner z z).re ≤ ‖c‖ * Real.sqrt (inner z z).re
+    rfl -- The equality holds.
 
 -- Placeholder for proving that innerProductTensorNorm is a norm (i.e., definiteness)
-lemma innerProductTensorNorm_definiteness {H1 H2 : Type*}
-  [NormedAddCommGroup H1] [InnerProductSpace ℂ H1] [CompleteSpace H1] [HilbertSpace ℂ H1]
-  [NormedAddCommGroup H2] [CompleteSpace H2] [HilbertSpace ℂ H2]
-  (z : H1 ⊗[ℂ] H2) :
-  innerProductTensorNorm z = 0 → z = 0 :=
-  sorry -- Definiteness placeholder
+intro z
+unfold innerProductTensorNorm
+-- Goal: 0 ≤ Real.sqrt (inner z z).re
+-- We know (inner z z).re ≥ 0 because inner z z = ‖z‖² which is a non-negative real.
+have h_nonneg : 0 ≤ (inner z z).re := by simp [inner_self_eq_norm_sq_to_K, Complex.ofReal_re, sq_nonneg]
+-- The square root of a non-negative number is non-negative.
+exact Real.sqrt_nonneg (inner z z).re
+definiteness' := by
+    intro z h_norm_zero
+    unfold innerProductTensorNorm at h_norm_zero
+    rw [Real.sqrt_eq_zero_iff_nonneg_eq_zero] at h_norm_zero
+    simp [inner_self_eq_norm_sq_to_K, Complex.ofReal_re, sq_nonneg]
+    simp at h_norm_zero
+    rw [inner_self_eq_norm_sq_to_K, Complex.ofReal_re] at h_norm_zero
+    rw [sq_eq_zero_iff_eq_zero] at h_norm_zero
+    exact norm_nonneg z
+    simp at h_norm_zero
+    exact norm_eq_zero.mp h_norm_zero
 
 -- Placeholder for proving that the inner product tensor norm of an elementary tensor x ⊗ y is equal to ‖x‖ * ‖y‖.
-lemma innerProductTensorNorm_tmul {H1 H2 : Type*}
-  [NormedAddCommGroup H1] [InnerProductSpace ℂ H1] [CompleteSpace H1] [HilbertSpace ℂ H1]
-  [NormedAddCommGroup H2] [CompleteSpace H2] [HilbertSpace ℂ H2] (x : H1) (y : H2) :
-  innerProductTensorNorm (TensorProduct.mk ℂ H1 H2 x y) = ‖x‖ * ‖y‖ :=
-  sorry -- Placeholder for the proof
+  intro x y
+  unfold innerProductTensorNorm
+  rw [TensorProduct.InnerProductSpace.inner_tmul]
+  simp only [inner_self_eq_norm_sq_to_K]
+  rw [Complex.ofReal_mul_re]
+  simp only [Complex.ofReal_re]
+  rw [Real.sqrt_mul (sq_nonneg ‖x‖) (sq_nonneg ‖y‖)]
+  rw [Real.sqrt_sq (norm_nonneg x), Real.sqrt_sq (norm_nonneg y)]
+  rfl
+-- Placeholder for proving that the inner product tensor norm of an elementary tensor x ⊗ y is equal to ‖x‖ * ‖y‖.
+intro x y
+unfold innerProductTensorNorm
+rw [TensorProduct.InnerProductSpace.inner_tmul]
+simp only [inner_self_eq_norm_sq_to_K]
+rw [Complex.ofReal_mul_re]
+simp only [Complex.ofReal_re]
+rw [Real.sqrt_mul (sq_nonneg ‖x‖) (sq_nonneg ‖y‖)]
+rw [Real.sqrt_sq (norm_nonneg x), Real.sqrt_sq (norm_nonneg y)]
+rfl
   Real.sqrt (inner z z).re
 -- We need to prove that the set of sum_of_norms is non-empty for any z.
 lemma TensorProductRepresentation_nonempty {R : Type*} [NondiscreteNormedField R]
@@ -387,6 +486,66 @@ nonneg' := by
 lemma projectiveTensorNorm_definiteness' {R : Type*} [NondiscreteNormedField R]
   {M : Type*} [NormedAddCommGroup M] [NormedSpace R M]
   {N : Type*} [NormedAddCommGroup N] [NormedSpace R N] (z : M ⊗[R] N) :
+intro h_norm_zero
+  -- Assume for contradiction that z ≠ 0.
+  by_contra h_z_ne_zero
+
+  -- By the lemma `bounded_bilinear_maps_separate_points`, since z ≠ 0, there exists a bounded bilinear map f such that f.map_tensorProduct z ≠ 0.
+  -- We use E = R as the target space, which is Nontrivial.
+  obtain ⟨f, hf_nonzero⟩ := bounded_bilinear_maps_separate_points R z h_z_ne_zero
+
+  -- Since f.map_tensorProduct z ≠ 0, its norm is strictly positive.
+  have h_norm_f_pos : 0 < ‖f.map_tensorProduct z‖ := by simp [norm_ne_zero_iff_ne_zero, hf_nonzero]
+
+  -- We know from the assumption projectiveTensorNorm z = 0 that for any ε > 0, there exists a representation `rep` of `z` such that `rep.sum_of_norms < ε`.
+  -- Let's use the specific ε = ‖f.map_tensorProduct z‖ / (2 * ‖f‖) if ‖f‖ ≠ 0.
+  -- If ‖f‖ = 0, then f is the zero map, f.map_tensorProduct is the zero map, so f.map_tensorProduct z = 0, which contradicts hf_nonzero.
+  -- So ‖f‖ ≠ 0.
+  have h_norm_f_ne_zero : ‖f‖ ≠ 0 := by
+    by_contra h_norm_f_zero
+    simp [norm_eq_zero] at h_norm_f_zero -- f is the zero map
+    simp [h_norm_f_zero] at hf_nonzero -- f.map_tensorProduct z = 0, contradiction
+  have h_norm_f_pos_real : 0 < ‖f‖ := by simp [lt_iff_le_and_ne, norm_nonneg, h_norm_f_ne_zero]
+
+  -- Choose ε such that 0 < ε.
+  let ε := ‖f.map_tensorProduct z‖ / (2 * ‖f‖)
+  have hε_pos : 0 < ε := by
+    apply div_pos -- a/b > 0 if a > 0 and b > 0
+    exact h_norm_f_pos -- Numerator is positive
+    simp [zero_lt_two, h_norm_f_pos_real, mul_pos] -- Denominator is positive
+
+  -- By the definition of infimum (projectiveTensorNorm z = 0), there exists a representation `rep` of `z` such that `rep.sum_of_norms < ε`.
+  obtain ⟨rep, h_rep_lt_epsilon⟩ := exists_lt_of_cinf_lt (TensorProductRepresentation_nonempty z) (by simp) ε (by simp [h_norm_zero, hε_pos])
+
+  -- We have a representation z = ∑ i in rep.ι, m_i ⊗ n_i such that ∑ i in rep.ι, ‖m_i‖ * ‖n_i‖ < ε.
+  -- Use the lemma `norm_bilinear_map_apply_le_sum_norms`.
+  have h_norm_le := norm_bilinear_map_apply_le_sum_norms f rep z rep.is_representation
+
+  -- Combine the inequalities:
+  -- ‖f.map_tensorProduct z‖ ≤ ‖f‖ * rep.sum_of_norms < ‖f‖ * ε
+  have h_combined_inequality : ‖f.map_tensorProduct z‖ < ‖f‖ * ε :=
+    calc ‖f.map_tensorProduct z‖ ≤ ‖f‖ * rep.sum_of_norms := h_norm_le
+    _ < ‖f‖ * ε := by
+        apply mul_lt_mul_of_pos_left h_rep_lt_epsilon h_norm_f_pos_real -- Multiply inequality by ‖f‖ > 0
+
+  -- Substitute the definition of ε:
+  -- ‖f.map_tensorProduct z‖ < ‖f‖ * (‖f.map_tensorProduct z‖ / (2 * ‖f‖))
+  -- ‖f.map_tensorProduct z‖ < ‖f.map_tensorProduct z‖ / 2
+  have h_contradiction_inequality : ‖f.map_tensorProduct z‖ < ‖f.map_tensorProduct z‖ / 2 := by
+    rw [h_combined_inequality]
+    field_simp [h_norm_f_ne_zero] -- Simplify the expression using field properties, assuming ‖f‖ ≠ 0
+    ring -- Simplify algebraic expression
+
+  -- This is a contradiction, as a non-negative number cannot be strictly less than half of itself unless it's zero.
+  -- We know ‖f.map_tensorProduct z‖ > 0 from h_norm_f_pos.
+  -- Let x = ‖f.map_tensorProduct z‖. We have x > 0 and x < x / 2.
+  -- x < x / 2 implies x - x / 2 < 0, which is x / 2 < 0.
+  -- This contradicts x > 0 and 2 > 0.
+  exact lt_self_div_two_iff.mp h_contradiction_inequality h_norm_f_pos -- Use the lemma x < x/2 iff x < 0
+
+  -- The contradiction arises from our assumption that z ≠ 0.
+  -- Therefore, z must be 0.
+  -- The proof is complete.
   projectiveTensorNorm z = 0 → z = 0 :=
 -- Lemma: Bounded bilinear maps separate points of the algebraic tensor product.
 lemma bounded_bilinear_maps_separate_points {R : Type*} [NondiscreteNormedField R]
@@ -400,7 +559,268 @@ lemma bounded_bilinear_maps_separate_points {R : Type*} [NondiscreteNormedField 
 -- The proof involves constructing a suitable bounded bilinear map that does not map a non-zero z to zero.
 -- This construction typically relies on the Hahn-Banach theorem or the definition of the projective tensor norm itself.
 -- Proof: This follows from the universal property of the algebraic tensor product and the fact that the dual space of a seminormed space separates points.
-by sorry -- Placeholder for the proof that bounded bilinear maps separate points
+intro h_z_ne_zero
+  -- The algebraic tensor product M ⊗[R] N has the universal property that for any bilinear map f : M → N → E,
+  -- there exists a unique linear map f' : M ⊗[R] N → E such that f(m, n) = f'(m ⊗ n).
+  -- This linear map f' is `TensorProduct.lift f`.
+  -- The projective tensor norm is defined such that the induced linear map f' is bounded if and only if the original bilinear map f is bounded, and ‖f'‖ = ‖f‖.
+  -- This is a key property of the projective tensor norm.
+
+  -- We want to show that if z ≠ 0, there exists a bounded bilinear map f such that f.map_tensorProduct z ≠ 0.
+  -- This is equivalent to showing that if for all bounded bilinear maps f, f.map_tensorProduct z = 0, then z = 0.
+  -- This is the contrapositive of the goal.
+
+  -- Assume for contradiction that for all bounded bilinear maps f : M →L[R] N →L[R] E, f.map_tensorProduct z = 0.
+  -- We need to show this implies z = 0.
+
+  -- Consider the space of bounded bilinear maps from M × N to E, denoted by `M →L[R] N →L[R] E`.
+  -- The map `f ↦ f.map_tensorProduct` is a linear map from `M →L[R] N →L[R] E` to `E`.
+  -- We are assuming that for a specific z ≠ 0, `f.map_tensorProduct z = 0` for all bounded bilinear maps f.
+  -- This means that z is in the kernel of the linear map `f ↦ f.map_tensorProduct` for all f.
+
+  -- The universal property of the algebraic tensor product states that the map
+  -- `(m, n) ↦ TensorProduct.mk R M N m n` is bilinear, and for any bilinear map `f : M → N → E`,
+  -- there exists a unique linear map `f' : M ⊗[R] N → E` such that `f = f' ∘ TensorProduct.mk`.
+  -- This linear map `f'` is `TensorProduct.lift f`.
+
+  -- The projective tensor norm is defined such that the map `f ↦ TensorProduct.lift f` is an isometric isomorphism
+  -- from the space of bounded bilinear maps `M →L[R] N →L[R] E` to the space of bounded linear maps
+  -- from `M ⊗[R] N` (with the projective tensor norm) to `E`.
+  -- `‖TensorProduct.lift f‖ = ‖f‖`.
+
+  -- If z ≠ 0, then by the definition of the projective tensor norm, ‖z‖_π > 0.
+  -- By the Hahn-Banach theorem (specifically, the fact that the dual space separates points),
+  -- for any non-zero element in a normed space, there exists a bounded linear functional that is non-zero on that element.
+  -- The dual space of `M ⊗[R] N` (with the projective tensor norm) is isometrically isomorphic to the space of bounded bilinear maps `M →L[R] N →L[R] R`.
+
+  -- If z ≠ 0, then there exists a bounded linear functional `g : M ⊗[R] N →L[R] R` such that `g z ≠ 0`.
+  -- By the isometric isomorphism between `(M ⊗[R] N)*` and `M →L[R] N →L[R] R`, this linear functional `g` corresponds to a bounded bilinear map `f : M →L[R] N →L[R] R` such that `TensorProduct.lift f = g`.
+  -- Then `f.map_tensorProduct z = (TensorProduct.lift f) z = g z ≠ 0`.
+  -- This provides the required bounded bilinear map.
+
+  -- We need to formalize the existence of the bounded linear functional `g`.
+  -- This is provided by `exists_bounded_linear_map_ne_zero`.
+  -- `lemma exists_bounded_linear_map_ne_zero {𝕜 : Type*} [NondiscreteNormedField 𝕜] {E : Type*} [NormedAddCommGroup E] [NormedSpace 𝕜 E] [Nontrivial E] (x : E) (hx : x ≠ 0) : ∃ f : E →L[𝕜] 𝕜, f x ≠ 0`
+
+  -- Apply this lemma to z in M ⊗[R] N with the projective tensor norm.
+  -- We need M ⊗[R] N to be a NormedSpace R (which it is, by the Seminorm instance).
+  -- We need M ⊗[R] N to be Nontrivial if z ≠ 0. This is true if M and N are Nontrivial.
+  -- If M and N are Nontrivial, then M ⊗[R] N is Nontrivial.
+  -- Assume M and N are Nontrivial.
+
+  -- If z ≠ 0, then by `exists_bounded_linear_map_ne_zero`, there exists a bounded linear map
+  -- `g : M ⊗[R] N →L[R] R` such that `g z ≠ 0`.
+  obtain ⟨g, hg_nonzero⟩ := exists_bounded_linear_map_ne_zero R z h_z_ne_zero
+
+  -- By the universal property of the algebraic tensor product and the definition of the projective tensor norm,
+  -- the space of bounded linear maps `M ⊗[R] N →L[R] R` is isometrically isomorphic to the space of bounded bilinear maps `M →L[R] N →L[R] R`.
+  -- The isometric isomorphism is given by `ContinuousLinearMap.toContinuousBilinearMap`.
+  -- The inverse isomorphism is given by `ContinuousBilinearMap.toContinuousLinearMap`.
+  -- We have a bounded linear map `g`. We can convert it to a bounded bilinear map `f`.
+  let f : M →L[R] N →L[R] R := ContinuousLinearMap.toContinuousBilinearMap g
+
+  -- We need to show that `f.map_tensorProduct z ≠ 0`.
+  -- We know that `f.map_tensorProduct` is the continuous linear map induced by f, which is `TensorProduct.lift f.toLinearMap`.
+  -- The map `ContinuousLinearMap.toContinuousBilinearMap` is the inverse of `ContinuousBilinearMap.toContinuousLinearMap`.
+  -- So `ContinuousBilinearMap.toContinuousLinearMap f = g`.
+  -- And `f.map_tensorProduct = ContinuousBilinearMap.toContinuousLinearMap f`.
+  -- Therefore, `f.map_tensorProduct = g`.
+
+  -- We need to show `f.map_tensorProduct z ≠ 0`.
+  -- We know `f.map_tensorProduct = g` and `g z ≠ 0`.
+  -- So `f.map_tensorProduct z = g z ≠ 0`.
+
+  -- We need to show `f.map_tensorProduct = g`.
+  -- This follows from the universal property.
+  -- The map `ContinuousBilinearMap.toContinuousLinearMap` is the inverse of `ContinuousLinearMap.toContinuousBilinearMap`.
+  -- `ContinuousBilinearMap.toContinuousLinearMap (ContinuousLinearMap.toContinuousBilinearMap g) = g`.
+  -- `f.map_tensorProduct = ContinuousBilinearMap.toContinuousLinearMap f`.
+  -- `f.map_tensorProduct = ContinuousBilinearMap.toContinuousLinearMap (ContinuousLinearMap.toContinuousBilinearMap g)`.
+  -- `f.map_tensorProduct = g`.
+
+  -- We need to show `f.map_tensorProduct z ≠ 0`.
+  -- We have `f.map_tensorProduct = g` and `g z ≠ 0`.
+  -- So `f.map_tensorProduct z = g z ≠ 0`.
+
+  -- We need to show that the target space R is Nontrivial. This is true for a NondiscreteNormedField.
+  -- We need E to be Nontrivial in the statement of `bounded_bilinear_maps_separate_points`.
+  -- Let E = R. R is Nontrivial.
+
+  -- The proof is:
+  -- If z ≠ 0, then there exists a bounded linear map g : M ⊗[R] N →L[R] R such that g z ≠ 0.
+  -- This map g corresponds to a bounded bilinear map f : M →L[R] N →L[R] R such that f.map_tensorProduct = g.
+  -- Then f.map_tensorProduct z = g z ≠ 0.
+
+  -- Formalizing the existence of f:
+  -- The map `ContinuousLinearMap.toContinuousBilinearMap R M N R` is an isometric isomorphism.
+  -- It is a surjective linear map.
+  -- For any g : M ⊗[R] N →L[R] R, there exists f : M →L[R] N →L[R] R such that `ContinuousBilinearMap.toContinuousLinearMap f = g`.
+  -- This f is `ContinuousLinearMap.toContinuousBilinearMap.symm g`.
+
+  -- Let g : M ⊗[R] N →L[R] R be such that g z ≠ 0.
+  -- Let f := ContinuousLinearMap.toContinuousBilinearMap.symm g.
+  -- Then f is a bounded bilinear map.
+  -- And `ContinuousBilinearMap.toContinuousLinearMap f = g`.
+  -- `f.map_tensorProduct z = (ContinuousBilinearMap.toContinuousLinearMap f) z = g z ≠ 0`.
+
+  -- We need to ensure the necessary instances for `ContinuousLinearMap.toContinuousBilinearMap.symm` are available.
+  -- This requires the domain and codomain to be complete, which they are (R is complete, M ⊗[R] N is complete with projective norm).
+
+  -- The proof is:
+  intro h_z_ne_zero
+  -- By Hahn-Banach (exists_bounded_linear_map_ne_zero), since z ≠ 0, there exists a bounded linear map g from M ⊗[R] N to R such that g z ≠ 0.
+  obtain ⟨g, hg_nonzero⟩ := exists_bounded_linear_map_ne_zero R z h_z_ne_zero
+  -- The space of bounded linear maps from M ⊗[R] N to R is isometrically isomorphic to the space of bounded bilinear maps from M x N to R.
+  -- This isomorphism is `ContinuousLinearMap.toContinuousBilinearMap`.
+  -- Its inverse is `ContinuousBilinearMap.toContinuousLinearMap`.
+  -- Let f be the bounded bilinear map corresponding to g.
+  let f : M →L[R] N →L[R] R
+intro h_z_ne_zero
+  -- We will use E = R as the target space for the bounded bilinear map.
+  -- R is Nontrivial because it is a NondiscreteNormedField.
+  -- We need to show that if z ≠ 0, there exists a bounded bilinear map f : M →L[R] N →L[R] R such that f.map_tensorProduct z ≠ 0.
+
+  -- By Hahn-Banach (specifically, `exists_bounded_linear_map_ne_zero`), since z ≠ 0 in M ⊗[R] N
+  -- (equipped with the projective tensor norm), there exists a bounded linear map
+  -- g : M ⊗[R] N →L[R] R such that g z ≠ 0.
+  -- We need M ⊗[R] N to be a NormedSpace R, which is provided by the Seminorm instance.
+  -- We need M ⊗[R] N to be Nontrivial if z ≠ 0. This is true if M and N are Nontrivial.
+  -- The lemma statement requires E to be Nontrivial. We are using E = R, which is Nontrivial.
+  -- The lemma `exists_bounded_linear_map_ne_zero` requires the domain to be a NormedSpace and Nontrivial.
+  -- M ⊗[R] N is a NormedSpace R by `projectiveTensorNorm_is_seminorm'`.
+  -- If z ≠ 0, we need M ⊗[R] N to be Nontrivial. This is true if M and N are Nontrivial.
+  -- The current lemma statement does not require M and N to be Nontrivial.
+  -- However, if M ⊗[R] N is trivial, then z must be 0, which contradicts h_z_ne_zero.
+  -- So M ⊗[R] N must be Nontrivial if z ≠ 0.
+
+  -- Apply `exists_bounded_linear_map_ne_zero` to z in M ⊗[R] N with target R.
+  -- The instance `NormedSpace R (M ⊗[R] N)` is provided by `projectiveTensorNorm_is_seminorm'`.
+  -- The instance `Nontrivial (M ⊗[R] N)` is implicitly true if z ≠ 0.
+  -- The instance `Nontrivial R` is true because R is a NondiscreteNormedField.
+  obtain ⟨g, hg_nonzero⟩ := exists_bounded_linear_map_ne_zero R z h_z_ne_zero
+
+  -- By the isometric isomorphism between `(M ⊗[R] N)*` and `M →L[R] N →L[R] R`,
+  -- the bounded linear map `g : M ⊗[R] N →L[R] R` corresponds to a bounded bilinear map
+  -- `f : M →L[R] N →L[R] R` such that `f.map_tensorProduct = g`.
+  -- The isomorphism from `(M ⊗[R] N)*` to `M →L[R] N →L[R] R` is `ContinuousLinearMap.toContinuousBilinearMap`.
+  -- The inverse isomorphism from `M →L[R] N →L[R] R` to `(M ⊗[R] N)*` is `ContinuousBilinearMap.toContinuousLinearMap`.
+  -- We have `g : M ⊗[R] N →L[R] R`. We need to find `f : M →L[R] N →L[R] R` such that `ContinuousBilinearMap.toContinuousLinearMap f = g`.
+  -- This `f` is the image of `g` under the inverse isomorphism.
+  -- The inverse isomorphism is `ContinuousLinearMap.toContinuousBilinearMap.symm`.
+  -- We need the domain and codomain to be complete for the inverse isomorphism to exist.
+  -- R is complete as a NondiscreteNormedField.
+  -- M ⊗[R] N is complete with the projective tensor norm (this is the definition of the completed tensor product, but we are working with the algebraic tensor product here).
+  -- The statement of `ContinuousLinearMap.toContinuousBilinearMap.symm` requires the domain and codomain to be complete.
+  -- The domain is `M ⊗[R] N →L[R] R`. The codomain is `M →L[R] N →L[R] R`.
+  -- The space of bounded linear maps into a complete space is complete. So `M ⊗[R] N →L[R] R` is complete.
+  -- The space of bounded bilinear maps into a complete space is complete. So `M →L[R] N →L[R] R` is complete.
+
+  -- Let f be the bounded bilinear map corresponding to g.
+  let f : M →L[R] N →L[R] R := ContinuousLinearMap.toContinuousBilinearMap.symm g
+
+  -- We need to show that `f.map_tensorProduct z ≠ 0`.
+  -- We know that `f.map_tensorProduct` is the continuous linear map induced by f, which is `ContinuousBilinearMap.toContinuousLinearMap f`.
+  -- By the definition of f, `ContinuousBilinearMap.toContinuousLinearMap f = g`.
+  -- So `f.map_tensorProduct = g`.
+  -- Therefore, `f.map_tensorProduct z = g z`.
+  -- We know `g z ≠ 0` from `hg_nonzero`.
+  -- So `f.map_tensorProduct z ≠ 0`.
+
+  -- We need to show that the target space E in the lemma statement can be R.
+  -- The lemma statement requires E to be Nontrivial. R is Nontrivial.
+  -- We can use the existential quantifier to specify E = R.
+  -- We need to show ∃ (f : M →L[R] N →L[R] E), f.map_tensorProduct z ≠ 0.
+  -- We found f : M →L[R] N →L[R] R such that f.map_tensorProduct z ≠ 0.
+  -- This f is a bounded bilinear map into R.
+  -- Since R is a NormedSpace R and Nontrivial, we can use E = R.
+
+  -- The proof is:
+  -- If z ≠ 0, then there exists a bounded linear map g : M ⊗[R] N →L[R] R such that g z ≠ 0.
+  -- This map g corresponds to a bounded bilinear map f : M →L[R] N →L[R] R such that f.map_tensorProduct = g.
+  -- Then f.map_tensorProduct z = g z ≠ 0.
+
+  -- Formalizing the existence of f and the final step:
+  use R -- Specify E = R
+  use ContinuousLinearMap.toContinuousBilinearMap.symm g -- Use the corresponding bounded bilinear map
+  -- Need to prove (ContinuousLinearMap.toContinuousBilinearMap.symm g).map_tensorProduct z ≠ 0
+  -- (ContinuousLinearMap.toContinuousBilinearMap.symm g).map_tensorProduct = ContinuousBilinearMap.toContinuousLinearMap (ContinuousLinearMap.toContinuousBilinearMap.symm g)
+  -- By property of inverse isomorphism, ContinuousBilinearMap.toContinuousLinearMap (ContinuousLinearMap.toContinuousBilinearMap.symm g) = g.
+  rw [ContinuousBilinearMap.toContinuousLinearMap_toContinuousBilinearMap_symm]
+  -- Goal: g z ≠ 0
+  exact hg_nonzero -- This is true by construction of g.
+intro h_z_ne_zero
+  -- We will use E = R as the target space for the bounded bilinear map.
+  -- R is Nontrivial because it is a NondiscreteNormedField.
+  -- We need to show that if z ≠ 0, there exists a bounded bilinear map f : M →L[R] N →L[R] R such that f.map_tensorProduct z ≠ 0.
+
+  -- By Hahn-Banach (specifically, `exists_bounded_linear_map_ne_zero`), since z ≠ 0 in M ⊗[R] N
+  -- (equipped with the projective tensor norm), there exists a bounded linear map
+  -- g : M ⊗[R] N →L[R] R such that g z ≠ 0.
+  -- We need M ⊗[R] N to be a NormedSpace R, which is provided by the Seminorm instance.
+  -- We need M ⊗[R] N to be Nontrivial if z ≠ 0. This is true if M and N are Nontrivial.
+  -- The lemma statement requires E to be Nontrivial. We are using E = R, which is Nontrivial.
+  -- The lemma `exists_bounded_linear_map_ne_zero` requires the domain to be a NormedSpace and Nontrivial.
+  -- M ⊗[R] N is a NormedSpace R by `projectiveTensorNorm_is_seminorm'`.
+  -- If z ≠ 0, we need M ⊗[R] N to be Nontrivial. This is true if M and N are Nontrivial.
+  -- The current lemma statement does not require M and N to be Nontrivial.
+  -- However, if M ⊗[R] N is trivial, then z must be 0, which contradicts h_z_ne_zero.
+  -- So M ⊗[R] N must be Nontrivial if z ≠ 0.
+
+  -- Apply `exists_bounded_linear_map_ne_zero` to z in M ⊗[R] N with target R.
+  -- The instance `NormedSpace R (M ⊗[R] N)` is provided by `projectiveTensorNorm_is_seminorm'`.
+  -- The instance `Nontrivial (M ⊗[R] N)` is implicitly true if z ≠ 0.
+  -- The instance `Nontrivial R` is true because R is a NondiscreteNormedField.
+  obtain ⟨g, hg_nonzero⟩ := exists_bounded_linear_map_ne_zero R z h_z_ne_zero
+
+  -- By the isometric isomorphism between `(M ⊗[R] N)*` and `M →L[R] N →L[R] R`,
+  -- the bounded linear map `g : M ⊗[R] N →L[R] R` corresponds to a bounded bilinear map
+  -- `f : M →L[R] N →L[R] R` such that `f.map_tensorProduct = g`.
+  -- The isomorphism from `(M ⊗[R] N)*` to `M →L[R] N →L[R] R` is `ContinuousLinearMap.toContinuousBilinearMap`.
+  -- Its inverse is `ContinuousBilinearMap.toContinuousLinearMap`.
+  -- We have `g : M ⊗[R] N →L[R] R`. We need to find `f : M →L[R] N →L[R] R` such that `ContinuousBilinearMap.toContinuousLinearMap f = g`.
+  -- This `f` is the image of `g` under the inverse isomorphism.
+  -- The inverse isomorphism is `ContinuousLinearMap.toContinuousBilinearMap.symm`.
+  -- We need the domain and codomain to be complete for the inverse isomorphism to exist.
+  -- R is complete as a NondiscreteNormedField.
+  -- M ⊗[R] N is complete with the projective tensor norm (this is the definition of the completed tensor product, but we are working with the algebraic tensor product here).
+  -- The statement of `ContinuousLinearMap.toContinuousBilinearMap.symm` requires the domain and codomain to be complete.
+  -- The domain is `M ⊗[R] N →L[R] R`. The codomain is `M →L[R] N →L[R] R`.
+  -- The space of bounded linear maps into a complete space is complete. So `M ⊗[R] N →L[R] R` is complete.
+  -- The space of bounded bilinear maps into a complete space is complete. So `M →L[R] N →L[R] R` is complete.
+
+  -- Let f be the bounded bilinear map corresponding to g.
+  let f : M →L[R] N →L[R] R := ContinuousLinearMap.toContinuousBilinearMap.symm g
+
+  -- We need to show that `f.map_tensorProduct z ≠ 0`.
+  -- We know that `f.map_tensorProduct` is the continuous linear map induced by f, which is `ContinuousBilinearMap.toContinuousLinearMap f`.
+  -- By the definition of f, `ContinuousBilinearMap.toContinuousLinearMap f = g`.
+  -- So `f.map_tensorProduct = g`.
+  -- Therefore, `f.map_tensorProduct z = g z`.
+  -- We know `g z ≠ 0` from `hg_nonzero`.
+  -- So `f.map_tensorProduct z ≠ 0`.
+
+  -- We need to show that the target space E in the lemma statement can be R.
+  -- The lemma statement requires E to be Nontrivial. R is Nontrivial.
+  -- We can use the existential quantifier to specify E = R.
+  -- We need to show ∃ (f : M →L[R] N →L[R] E), f.map_tensorProduct z ≠ 0.
+  -- We found f : M →L[R] N →L[R] R such that f.map_tensorProduct z ≠ 0.
+  -- This f is a bounded bilinear map into R.
+  -- Since R is a NormedSpace R and Nontrivial, we can use E = R.
+
+  -- The proof is:
+  -- If z ≠ 0, then there exists a bounded linear map g : M ⊗[R] N →L[R] R such that g z ≠ 0.
+  -- This map g corresponds to a bounded bilinear map f : M →L[R] N →L[R] R such that f.map_tensorProduct = g.
+  -- Then f.map_tensorProduct z = g z ≠ 0.
+
+  -- Formalizing the existence of f and the final step:
+  use R -- Specify E = R
+  use ContinuousLinearMap.toContinuousBilinearMap.symm g -- Use the corresponding bounded bilinear map
+  -- Need to prove (ContinuousLinearMap.toContinuousBilinearMap.symm g).map_tensorProduct z ≠ 0
+  -- (ContinuousLinearMap.toContinuousBilinearMap.symm g).map_tensorProduct = ContinuousBilinearMap.toContinuousLinearMap (ContinuousLinearMap.toContinuousBilinearMap.symm g)
+  -- By property of inverse isomorphism, ContinuousBilinearMap.toContinuousLinearMap (ContinuousLinearMap.toContinuousBilinearMap.symm g) = g.
+  rw [ContinuousBilinearMap.toContinuousLinearMap_toContinuousBilinearMap_symm]
+  -- Goal: g z ≠ 0
+  exact hg_nonzero -- This is true by construction of g.
 -- Lemma relating the norm of applying a bounded bilinear map to a tensor product element
 lemma norm_bilinear_map_apply_le_sum_norms {R : Type*} [NondiscreteNormedField R]
   {M : Type*} [NormedAddCommGroup M] [NormedSpace R M]
@@ -419,6 +839,140 @@ lemma projectiveTensorNorm_tmul {R : Type*} [NondiscreteNormedField R]
   {M : Type*} [NormedAddCommGroup M] [NormedSpace R M]
   {N : Type*} [NormedAddCommGroup N] [NormedSpace R N] (x : M) (y : N) :
   projectiveTensorNorm (TensorProduct.mk R M N x y) = ‖x‖ * ‖y‖ :=
+by
+  -- Prove ‖x ⊗ y‖_π ≤ ‖x‖ * ‖y‖
+  have h_le : projectiveTensorNorm (TensorProduct.mk R M N x y) ≤ ‖x‖ * ‖y‖ := by
+    -- Consider the representation of x ⊗ y with a single term: ι = {0}, m 0 = x, n 0 = y.
+    -- The sum of norms for this representation is ‖x‖ * ‖y‖.
+    -- The infimum over all representations is less than or equal to the sum of norms for this specific representation.
+    let rep : TensorProductRepresentation (TensorProduct.mk R M N x y) := {
+      ι := Finset.singleton (0 : Unit), -- Use Unit as index set with one element
+      m := fun _ => x,
+      n := fun _ => y,
+      is_representation := by
+        -- Goal: ∑ i in {0}, TensorProduct.mk R M N (m i) (n i) = TensorProduct.mk R M N x y
+        simp -- Sum over singleton is the term itself. m 0 = x, n 0 = y.
+      sum_of_norms := ‖x‖ * ‖y‖ -- Sum over singleton is ‖m 0‖ * ‖n 0‖ = ‖x‖ * ‖y‖
+    }
+    -- The sum of norms for this representation is in the set for projectiveTensorNorm.
+    -- The infimum is less than or equal to any element in the set.
+    exact cinf_le (TensorProductRepresentation_nonempty (TensorProduct.mk R M N x y)) (by simp) rep
+
+  -- Prove ‖x‖ * ‖y‖ ≤ ‖x ⊗ y‖_π
+  have h_ge : ‖x‖ * ‖y‖ ≤ projectiveTensorNorm (TensorProduct.mk R M N x y) := by
+    -- This inequality relies on the Hahn-Banach theorem.
+    -- We construct a bounded bilinear form f such that ‖f x y‖ = ‖x‖ * ‖y‖ and ‖f (∑ m_i ⊗ n_i)‖ ≤ ∑ ‖m_i‖ * ‖n_i‖.
+    -- Case 1: x = 0 or y = 0. Then ‖x‖ * ‖y‖ = 0. projectiveTensorNorm (0 ⊗ y) = projectiveTensorNorm 0 = 0. 0 ≤ 0 holds.
+    by_cases hx : x = 0
+    · simp [hx]
+    by_cases hy : y = 0
+    · simp [hy]
+    -- Case 2: x ≠ 0 and y ≠ 0.
+    -- By Hahn-Banach theorem (specifically, `exists_bounded_linear_map_eq_norm`),
+    -- there exists a bounded linear functional φ : M → R such that ‖φ‖ = 1 and φ x = ‖x‖.
+    -- Similarly, there exists a bounded linear functional ψ : N → R such that ‖ψ‖ = 1 and ψ y = ‖y‖.
+    -- We need R to be a complete normed field for Hahn-Banach. NondiscreteNormedField implies this.
+    obtain ⟨φ, hφ_norm, hφ_eq⟩ := exists_bounded_linear_map_eq_norm R x
+    obtain ⟨ψ, hψ_norm, hψ_eq⟩ := exists_bounded_linear_map_eq_norm R y
+    -- Define the bilinear map f(m, n) = φ m * ψ n.
+    let f : M →L[R] N →L[R] R :=
+      ContinuousBilinearMap.mk2 R φ ψ (by -- Prove bilinearity
+        constructor
+        · intros m1 m2 n; simp [map_add]
+        · intros c m n; simp [map_smul]
+        · intros m n1 n2; simp [map_add]
+        · intros c m n; simp [map_smul]
+      ) (by -- Prove boundedness
+        use ‖φ‖ * ‖ψ‖ -- The norm of the tensor product of linear maps is the product of norms.
+        intros m n
+        simp -- Goal: ‖φ m * ψ n‖ ≤ ‖φ‖ * ‖ψ‖ * ‖m‖ * ‖n‖
+        rw [norm_mul] -- ‖a * b‖ = ‖a‖ * ‖b‖
+        apply mul_le_mul -- ‖φ m‖ * ‖ψ n‖ ≤ ‖φ‖ * ‖m‖ * ‖ψ‖ * ‖n‖
+        · exact φ.le_op_norm m -- ‖φ m‖ ≤ ‖φ‖ * ‖m‖
+        · exact ψ.le_op_norm n -- ‖ψ n‖ ≤ ‖ψ‖ * ‖n‖
+        · exact norm_nonneg (ψ n) -- 0 ≤ ‖ψ n‖
+        · exact mul_nonneg (norm_nonneg φ) (norm_nonneg m) -- 0 ≤ ‖φ‖ * ‖m‖
+      )
+    -- The norm of this bilinear map is ‖f‖ = ‖φ‖ * ‖ψ‖ = 1 * 1 = 1.
+    have hf_norm : ‖f‖ = ‖φ‖ * ‖ψ‖ := ContinuousBilinearMap.op_norm_mk2 φ ψ
+    simp [hφ_norm, hψ_norm] at hf_norm -- ‖f‖ = 1
+    -- We have z = x ⊗ y. Consider any representation z = ∑ i, m_i ⊗ n_i.
+    -- Apply the bilinear map f to both sides.
+    -- f (x ⊗ y) = f (∑ i, m_i ⊗ n_i)
+    -- By linearity of f: f (∑ i, m_i ⊗ n_i) = ∑ i, f (m_i ⊗ n_i)
+    -- f (m ⊗ n) = φ m * ψ n.
+    -- So f (x ⊗ y) = φ x * ψ y and f (∑ i, φ m_i * ψ n_i) = ∑ i, φ m_i * ψ n_i.
+    -- φ x * ψ y = ∑ i, φ m_i * ψ n_i.
+    -- Take the norm of both sides.
+    -- ‖φ x * ψ y‖ = ‖∑ i, φ m_i * ψ n_i‖
+    -- ‖φ x‖ * ‖ψ y‖ = ‖∑ i, φ m_i * ψ n_i‖
+    -- ‖x‖ * ‖y‖ = ‖∑ i, φ m_i * ψ n_i‖ (by hφ_eq, hψ_eq)
+    -- By triangle inequality for norms: ‖∑ i, φ m_i * ψ n_i‖ ≤ ∑ i, ‖φ m_i * ψ n_i‖
+    -- ∑ i, ‖φ m_i * ψ n_i‖ = ∑ i, ‖φ m_i‖ * ‖ψ n_i‖
+    -- By boundedness of φ and ψ: ‖φ m_i‖ ≤ ‖φ‖ * ‖m_i‖ = 1 * ‖m_i‖ = ‖m_i‖. Similarly ‖ψ n_i‖ ≤ ‖n_i‖.
+    -- So ∑ i, ‖φ m_i‖ * ‖ψ n_i‖ ≤ ∑ i, ‖m_i‖ * ‖n_i‖.
+    -- Combining these: ‖x‖ * ‖y‖ ≤ ‖∑ i, φ m_i * ψ n_i‖ ≤ ∑ i, ‖φ m_i * ψ n_i‖ = ∑ i, ‖φ m_i‖ * ‖ψ n_i‖ ≤ ∑ i, ‖m_i‖ * ‖n_i‖.
+    -- So for any representation ∑ m_i ⊗ n_i = x ⊗ y, we have ‖x‖ * ‖y‖ ≤ ∑ ‖m_i‖ * ‖n_i‖.
+    -- By the definition of infimum, ‖x‖ * ‖y‖ ≤ inf { ∑ ‖m_i‖ * ‖n_i‖ } = ‖x ⊗ y‖_π.
+    -- This completes the proof of the second inequality.
+    -- Formalizing the steps:
+    intro rep -- Consider any representation of z = x ⊗ y
+    -- Need to show ‖x‖ * ‖y‖ ≤ rep.sum_of_norms
+    -- Use the bilinear map f.
+    have h_f_apply_z : f.map_tensorProduct (TensorProduct.mk R M N x y) = f.map_tensorProduct (∑ i in rep.ι, TensorProduct.mk R M N (rep.m i) (rep.n i)) := by rw [rep.is_representation]
+    have h_f_apply_tmul : f.map_tensorProduct (TensorProduct.mk R M N x y) = φ x * ψ y := by simp [f]
+    have h_f_apply_sum : f.map_tensorProduct (∑ i in rep.ι, TensorProduct.mk R M N (rep.m i) (rep.n i)) = ∑ i in rep.ι, f.map_tensorProduct (TensorProduct.mk R M N (rep.m i) (rep.n i)) := by rw [ContinuousBilinearMap.map_sum_left]
+    have h_f_apply_sum_terms : ∑ i in rep.ι, f.map_tensorProduct (TensorProduct.mk R M N (rep.m i) (rep.n i)) = ∑ i in rep.ι, φ (rep.m i) * ψ (rep.n i) := by simp [f]
+    rw [h_f_apply_z, h_f_apply_tmul, h_f_apply_sum, h_f_apply_sum_terms]
+    -- Goal: φ x * ψ y = ∑ i in rep.ι, φ (rep.m i) * ψ (rep.n i)
+    -- This is true by linearity of f.map_tensorProduct.
+    -- Now take the norm of both sides.
+    have h_norm_eq : ‖φ x * ψ y‖ = ‖∑ i in rep.ι, φ (rep.m i) * ψ (rep.n i)‖ := by rw [← h_f_apply_z, ← h_f_apply_tmul, ← h_f_apply_sum, ← h_f_apply_sum_terms]
+    rw [norm_mul] at h_norm_eq -- ‖a * b‖ = ‖a‖ * ‖b‖
+    rw [hφ_eq, hψ_eq] at h_norm_eq -- ‖φ x‖ = ‖x‖, ‖ψ y‖ = ‖y‖
+    -- Goal: ‖x‖ * ‖y‖ = ‖∑ i in rep.ι, φ (rep.m i) * ψ (rep.n i)‖
+    -- Use triangle inequality for norms.
+    calc ‖x‖ * ‖y‖
+      _ = ‖∑ i in rep.ι, φ (rep.m i) * ψ (rep.n i)‖ := h_norm_eq.symm
+      _ ≤ ∑ i in rep.ι, ‖φ (rep.m i) * ψ (rep.n i)‖ := norm_sum_le _ _
+      _ = ∑ i in rep.ι, ‖φ (rep.m i)‖ * ‖ψ (rep.n i)‖ := by simp_rw [norm_mul]
+      _ ≤ ∑ i in rep.ι, (‖φ‖ * ‖rep.m i‖) * (‖ψ‖ * ‖rep.n i‖) := by
+          apply Finset.sum_le_sum -- Apply inequality pointwise
+          intro i _
+          apply mul_le_mul -- (‖φ‖ * ‖m_i‖) * (‖ψ‖ * ‖n_i‖)
+          · exact φ.le_op_norm (rep.m i) -- ‖φ m_i‖ ≤ ‖φ‖ * ‖m_i‖
+          · exact ψ.le_op_norm (rep.n i) -- ‖ψ n_i‖ ≤ ‖ψ‖ * ‖n_i‖
+          · exact norm_nonneg (ψ (rep.n i)) -- 0 ≤ ‖ψ n_i‖
+          · exact mul_nonneg (norm_nonneg φ) (norm_nonneg (rep.m i)) -- 0 ≤ ‖φ‖ * ‖m_i‖
+      _ = ∑ i in rep.ι, (1 * ‖rep.m i‖) * (1 * ‖rep.n i‖) := by simp [hφ_norm, hψ_norm] -- ‖φ‖ = 1, ‖ψ‖ = 1
+      _ = ∑ i in rep.ι, ‖rep.m i‖ * ‖rep.n i‖ := by simp [one_mul]
+      _ = rep.sum_of_norms := by unfold TensorProductRepresentation.sum_of_norms
+    -- We have shown that for any representation `rep`, ‖x‖ * ‖y‖ ≤ rep.sum_of_norms.
+    -- By the definition of infimum, ‖x‖ * ‖y‖ is a lower bound for the set of sums of norms.
+    -- The infimum is the greatest lower bound, so ‖x‖ * ‖y‖ ≤ inf { sums of norms }.
+    -- This is exactly the goal.
+    exact le_cinf (TensorProductRepresentation_nonempty (TensorProduct.mk R M N x y)) (by simp) (by intro rep; exact calc ‖x‖ * ‖y‖
+      _ = ‖φ x * ψ y‖ := by rw [norm_mul, hφ_eq, hψ_eq]
+      _ = ‖f.map_tensorProduct (TensorProduct.mk R M N x y)‖ := by simp [f]
+      _ = ‖f.map_tensorProduct (∑ i in rep.ι, TensorProduct.mk R M N (rep.m i) (rep.n i))‖ := by rw [rep.is_representation]
+      _ = ‖∑ i in rep.ι, f.map_tensorProduct (TensorProduct.mk R M N (rep.m i) (rep.n i))‖ := by rw [ContinuousBilinearMap.map_sum_left]
+      _ = ‖∑ i in rep.ι, φ (rep.m i) * ψ (rep.n i)‖ := by simp [f]
+      _ ≤ ∑ i in rep.ι, ‖φ (rep.m i) * ψ (rep.n i)‖ := norm_sum_le _ _
+      _ = ∑ i in rep.ι, ‖φ (rep.m i)‖ * ‖ψ (rep.n i)‖ := by simp_rw [norm_mul]
+      _ ≤ ∑ i in rep.ι, (‖φ‖ * ‖rep.m i‖) * (‖ψ‖ * ‖rep.n i‖) := by
+          apply Finset.sum_le_sum
+          intro i _
+          apply mul_le_mul
+          · exact φ.le_op_norm (rep.m i)
+          · exact ψ.le_op_norm (rep.n i)
+          · exact norm_nonneg (ψ (rep.n i))
+          · exact mul_nonneg (norm_nonneg φ) (norm_nonneg (rep.m i))
+      _ = ∑ i in rep.ι, (1 * ‖rep.m i‖) * (1 * ‖rep.n i‖) := by simp [hφ_norm, hψ_norm]
+      _ = ∑ i in rep.ι, ‖rep.m i‖ * ‖rep.n i‖ := by simp [one_mul]
+      _ = rep.sum_of_norms := by unfold TensorProductRepresentation.sum_of_norms)
+
+  -- Combine the two inequalities to get equality.
+  exact le_antisymm h_le h_ge
 -- The proof involves showing two inequalities:
 -- 1. ‖x ⊗ y‖_π ≤ ‖x‖ * ‖y‖
 -- 2. ‖x‖ * ‖y‖ ≤ ‖x ⊗ y‖_π
@@ -652,6 +1206,46 @@ by
     _ = ‖∑ i in rep.ι, f (rep.m i) (rep.n i)‖ := by
         -- Need to show f.map_tensorProduct z = ∑ i in rep.ι, f (rep.m i) (rep.n i).
         -- Use the fact that rep is a representation of z.
+        rw [rep.is_representation] -- Substitute z with its representation
+        -- f.map_tensorProduct is a linear map, so it distributes over finite sums.
+        rw [ContinuousLinearMap.map_sum]
+        -- The action of f.map_tensorProduct on a simple tensor is f applied to the elements.
+        apply Finset.sum_congr rfl -- Pointwise equality in the sum
+        intro i _
+        rw [f.map_tensorProduct_tmul] -- f.map_tensorProduct (m ⊗ n) = f m n
+    _ ≤ ∑ i in rep.ι, ‖f (rep.m i) (rep.n i)‖ := by
+        -- Apply the triangle inequality for norms on the sum.
+        exact norm_sum_le _ _
+    _ ≤ ∑ i in rep.ι, ‖f‖ * ‖rep.m i‖ * ‖rep.n i‖ := by
+        -- Apply the property of bounded bilinear maps: ‖f m n‖ ≤ ‖f‖ * ‖m‖ * ‖n‖.
+        apply Finset.sum_le_sum -- Apply inequality pointwise in the sum
+        intro i _
+        -- The norm of applying a bounded bilinear map is bounded by the product of norms.
+        exact f.le_op_norm (rep.m i) (rep.n i) -- ‖f m n‖ ≤ ‖f‖ * ‖m‖ * ‖n‖
+    _ = ‖f‖ * ∑ i in rep.ι, ‖rep.m i‖ * ‖rep.n i‖ := by
+        -- Factor out ‖f‖ from the sum.
+        rw [Finset.mul_sum]
+        -- Rearrange the terms inside the sum: ‖f‖ * (‖m‖ * ‖n‖) = (‖f‖ * ‖m‖) * ‖n‖
+        apply Finset.sum_congr rfl -- Pointwise equality in the sum
+        intro i _
+        ring -- Use ring to simplify algebraic expression
+    _ = ‖f‖ * rep.sum_of_norms := by
+        -- Substitute the definition of rep.sum_of_norms.
+        unfold TensorProductRepresentation.sum_of_norms
+by
+  -- We need to show ‖f.map_tensorProduct z‖ ≤ ‖f‖ * rep.sum_of_norms.
+  -- The induced linear map f' : M ⊗[R] N → E is f.map_tensorProduct.
+  -- We have z = ∑ i in rep.ι, TensorProduct.mk R M N (rep.m i) (rep.n i).
+  -- f.map_tensorProduct z = f.map_tensorProduct (∑ i in rep.ι, TensorProduct.mk R M N (rep.m i) (rep.n i))
+  -- By linearity of f.map_tensorProduct:
+  -- f.map_tensorProduct z = ∑ i in rep.ι, f.map_tensorProduct (TensorProduct.mk R M N (rep.m i) (rep.n i))
+  -- By definition of f.map_tensorProduct on simple tensors:
+  -- f.map_tensorProduct z = ∑ i in rep.ι, f (rep.m i) (rep.n i)
+
+  calc ‖f.map_tensorProduct z‖
+    _ = ‖∑ i in rep.ι, f (rep.m i) (rep.n i)‖ := by
+        -- Need to show f.map_tensorProduct z = ∑ i in rep.ι, f (rep.m i) (rep.n i).
+        -- Use the fact that rep is a representation of z.
         rw [h_rep] -- Substitute z with its representation
         -- f.map_tensorProduct is a linear map, so it distributes over finite sums.
         rw [ContinuousLinearMap.map_sum]
@@ -701,31 +1295,248 @@ by
   -- We need to show that this implies z = 0.
   -- This step requires a deeper property relating the smallness of the sum of norms to the tensor product being zero.
   -- This is where the foundational formalization is needed.
-sorry -- Definiteness placeholder
+intro h_norm_zero
+  -- Assume for contradiction that z ≠ 0.
+  by_contra h_z_ne_zero
+
+  -- By the lemma `bounded_bilinear_maps_separate_points`, since z ≠ 0, there exists a bounded bilinear map f such that f.map_tensorProduct z ≠ 0.
+  -- We use E = R as the target space, which is Nontrivial.
+  obtain ⟨f, hf_nonzero⟩ := bounded_bilinear_maps_separate_points R z h_z_ne_zero
+
+  -- Since f.map_tensorProduct z ≠ 0, its norm is strictly positive.
+  have h_norm_f_pos : 0 < ‖f.map_tensorProduct z‖ := by simp [norm_ne_zero_iff_ne_zero, hf_nonzero]
+
+  -- We know from the assumption projectiveTensorNorm z = 0 that for any ε > 0, there exists a representation `rep` of `z` such that `rep.sum_of_norms < ε`.
+  -- Let's use the specific ε = ‖f.map_tensorProduct z‖ / (2 * ‖f‖) if ‖f‖ ≠ 0.
+  -- If ‖f‖ = 0, then f is the zero map, f.map_tensorProduct is the zero map, so f.map_tensorProduct z = 0, which contradicts hf_nonzero.
+  -- So ‖f‖ ≠ 0.
+  have h_norm_f_ne_zero : ‖f‖ ≠ 0 := by
+    by_contra h_norm_f_zero
+    simp [norm_eq_zero] at h_norm_f_zero -- f is the zero map
+    simp [h_norm_f_zero] at hf_nonzero -- f.map_tensorProduct z = 0, contradiction
+  have h_norm_f_pos_real : 0 < ‖f‖ := by simp [lt_iff_le_and_ne, norm_nonneg, h_norm_f_ne_zero]
+
+  -- Choose ε such that 0 < ε.
+  let ε := ‖f.map_tensorProduct z‖ / (2 * ‖f‖)
+  have hε_pos : 0 < ε := by
+    apply div_pos -- a/b > 0 if a > 0 and b > 0
+    exact h_norm_f_pos -- Numerator is positive
+    simp [zero_lt_two, h_norm_f_pos_real, mul_pos] -- Denominator is positive
+
+  -- By the definition of infimum (projectiveTensorNorm z = 0), there exists a representation `rep` of `z` such that `rep.sum_of_norms < ε`.
+  obtain ⟨rep, h_rep_lt_epsilon⟩ := exists_lt_of_cinf_lt (TensorProductRepresentation_nonempty z) (by simp) ε (by simp [h_norm_zero, hε_pos])
+
+  -- We have a representation z = ∑ i in rep.ι, m_i ⊗ n_i such that ∑ i in rep.ι, ‖m_i‖ * ‖n_i‖ < ε.
+  -- Use the lemma `norm_bilinear_map_apply_le_sum_norms`.
+  have h_norm_le := norm_bilinear_map_apply_le_sum_norms f rep z rep.is_representation
+
+  -- Combine the inequalities:
+  -- ‖f.map_tensorProduct z‖ ≤ ‖f‖ * rep.sum_of_norms < ‖f‖ * ε
+  have h_combined_inequality : ‖f.map_tensorProduct z‖ < ‖f‖ * ε :=
+    calc ‖f.map_tensorProduct z‖ ≤ ‖f‖ * rep.sum_of_norms := h_norm_le
+    _ < ‖f‖ * ε := by
+        apply mul_lt_mul_of_pos_left h_rep_lt_epsilon h_norm_f_pos_real -- Multiply inequality by ‖f‖ > 0
+
+  -- Substitute the definition of ε:
+  -- ‖f.map_tensorProduct z‖ < ‖f‖ * (‖f.map_tensorProduct z‖ / (2 * ‖f‖))
+  -- ‖f.map_tensorProduct z‖ < ‖f.map_tensorProduct z‖ / 2
+  have h_contradiction_inequality : ‖f.map_tensorProduct z‖ < ‖f.map_tensorProduct z‖ / 2 := by
+    rw [h_combined_inequality]
+    field_simp [h_norm_f_ne_zero] -- Simplify the expression using field properties, assuming ‖f‖ ≠ 0
+    ring -- Simplify algebraic expression
+
+  -- This is a contradiction, as a non-negative number cannot be strictly less than half of itself unless it's zero.
+  -- We know ‖f.map_tensorProduct z‖ > 0 from h_norm_f_pos.
+  -- Let x = ‖f.map_tensorProduct z‖. We have x > 0 and x < x / 2.
+  -- x < x / 2 implies x - x / 2 < 0, which is x / 2 < 0.
+  -- This contradicts x > 0 and 2 > 0.
+  exact lt_self_div_two_iff.mp h_contradiction_inequality h_norm_f_pos -- Use the lemma x < x/2 iff x < 0
+
+  -- The contradiction arises from our assumption that z ≠ 0.
+  -- Therefore, z must be 0.
+  -- The proof is complete.
 
 -- Note: The previous placeholders for seminorm and definiteness are now replaced
 -- with new ones that will use the actual definition of projectiveTensorNorm.
   toFun := projectiveTensorNorm
-  add_le' := sorry -- Triangle inequality placeholder
-  smul_le' := sorry -- Homogeneity placeholder
+  add_le' := by
+    -- Goal: projectiveTensorNorm (z1 + z2) ≤ projectiveTensorNorm z1 + projectiveTensorNorm z2
+    intro z1 z2
+    -- Use the characterization of infimum: inf S ≤ a iff for every ε > 0, there exists x ∈ S such that x < a + ε.
+    -- We want to show projectiveTensorNorm (z1 + z2) ≤ projectiveTensorNorm z1 + projectiveTensorNorm z2.
+    -- This is equivalent to showing that for every ε > 0, projectiveTensorNorm (z1 + z2) < projectiveTensorNorm z1 + projectiveTensorNorm z2 + ε.
+    -- Let ε > 0. We need to find a representation of z1 + z2, rep_z1z2, such that rep_z1z2.sum_of_norms < projectiveTensorNorm z1 + projectiveTensorNorm z2 + ε.
+
+    intro ε hε
+    -- By exists_lt_of_cinf_lt, there exists a representation rep_z1 of z1 such that rep_z1.sum_of_norms < projectiveTensorNorm z1 + ε/2.
+    have h_epsilon_half : ε / 2 > 0 := half_pos hε
+    obtain ⟨rep_z1, h_rep_z1⟩ := exists_lt_of_cinf_lt (TensorProductRepresentation_nonempty z1) (by simp) (projectiveTensorNorm z1 + ε / 2) (add_lt_add_left (half_pos hε) _)
+
+    -- By exists_lt_of_cinf_lt, there exists a representation rep_z2 of z2 such that rep_z2.sum_of_norms < projectiveTensorNorm z2 + ε/2.
+    obtain ⟨rep_z2, h_rep_z2⟩ := exists_lt_of_cinf_lt (TensorProductRepresentation_nonempty z2) (by simp) (projectiveTensorNorm z2 + ε / 2) (add_lt_add_left (half_pos hε) _)
+
+    -- Construct a representation of z1 + z2 by concatenating the representations of z1 and z2 using disjoint union of index sets.
+    let ι_z1z2 := Finset.disjUnion rep_z1.ι rep_z2.ι (Finset.disjoint_erase)
+    let m' (i : ι_z1z2) : M := if i.fst then rep_z2.m i.snd else rep_z1.m i.snd
+    let n' (i : ι_z1z2) : N := if i.fst then rep_z2.n i.snd else rep_z1.n i.snd
+
+    let rep_z1z2' : TensorProductRepresentation (z1 + z2) := {
+      ι := ι_z1z2,
+      m := m',
+      n := n',
+      is_representation := by
+        rw [Finset.sum_disjUnion] -- Sum over disjoint union is sum over left + sum over right
+        -- Sum over left (rep_z1.ι × {false}): ∑ i in rep_z1.ι, TensorProduct.mk R M N (m' (i, false)) (n' (i, false))
+        -- m' (i, false) = rep_z1.m i, n' (i, false) = rep_z1.n i. Sum is z1.
+        have h_sum_left : (∑ i in rep_z1.ι.map (Embedding.inl _), TensorProduct.mk R M N (m' i) (n' i)) = z1 := by
+          rw [Finset.sum_map (Embedding.inl _)] -- Sum over map is sum over original set
+          apply Finset.sum_congr rfl; intro i hi; simp only [m', n', Embedding.inl_apply]; rfl
+          exact rep_z1.is_representation
+        rw [h_sum_left]
+        -- Sum over right (rep_z2.ι × {true}): ∑ i in rep_z2.ι, TensorProduct.mk R M N (m' (i, true)) (n' (i, true))
+        -- m' (i, true) = rep_z2.m i, n' (i, true) = rep_z2.n i. Sum is z2.
+        have h_sum_right : (∑ i in rep_z2.ι.map (Embedding.inr _), TensorProduct.mk R M N (m' i) (n' i)) = z2 := by
+          rw [Finset.sum_map (Embedding.inr _)] -- Sum over map is sum over original set
+          apply Finset.sum_congr rfl; intro i hi; simp only [m', n', Embedding.inr_apply]; rfl
+          exact rep_z2.is_representation
+        rw [h_sum_right]
+        rfl
+      sum_of_norms := ∑ i in ι_z1z2, ‖m' i‖ * ‖n' i‖
+    }
+
+    -- Show that rep_z1z2'.sum_of_norms = rep_z1.sum_of_norms + rep_z2.sum_of_norms.
+    have h_sum_of_norms_eq : rep_z1z2'.sum_of_norms = rep_z1.sum_of_norms + rep_z2.sum_of_norms := by
+      unfold TensorProductRepresentation.sum_of_norms
+      rw [Finset.sum_disjUnion] -- Sum over disjoint union is sum over left + sum over right
+      -- Sum over left (rep_z1.ι × {false}): ∑ i in rep_z1.ι, ‖if false then rep_z2.m i else rep_z1.m i‖ * ‖if false then rep_z2.n i else rep_z1.n i‖
+      -- = ∑ i in rep_z1.ι, ‖rep_z1.m i‖ * ‖rep_z1.n i‖ = rep_z1.sum_of_norms.
+      have h_sum_left : (∑ i in rep_z1.ι.map (Embedding.inl _), ‖if i.fst then rep_z2.m i.snd else rep_z1.m i.snd‖ * ‖if i.fst then rep_z2.n i.snd else rep_z1.n i.snd‖) = rep_z1.sum_of_norms := by
+        rw [Finset.sum_map (Embedding.inl _)]
+        apply Finset.sum_congr rfl; intro i hi; simp only [Embedding.inl_apply]; rfl
+        unfold TensorProductRepresentation.sum_of_norms
+      rw [h_sum_left]
+      -- Sum over right (rep_z2.ι × {true}): ∑ i in rep_z2.ι, ‖if true then rep_z2.m i else rep_z1.m i‖ * ‖if true then rep_z2.n i else rep_z1.n i‖
+      -- = ∑ i in rep_z2.ι, ‖rep_z2.m i‖ * ‖rep_z2.n i‖ = rep_z2.sum_of_norms.
+      have h_sum_right : (∑ i in rep_z2.ι.map (Embedding.inr _), ‖if i.fst then rep_z2.m i.snd else rep_z1.m i.snd‖ * ‖if i.fst then rep_z2.n i.snd else rep_z1.n i.snd‖) = rep_z2.sum_of_norms := by
+        rw [Finset.sum_map (Embedding.inr _)]
+        apply Finset.sum_congr rfl; intro i hi; simp only [Embedding.inr_apply]; rfl
+        unfold TensorProductRepresentation.sum_of_norms
+      rw [h_sum_right]
+      rfl
+
+    -- We have rep_z1z2'.sum_of_norms = rep_z1.sum_of_norms + rep_z2.sum_of_norms.
+    -- We have rep_z1.sum_of_norms < projectiveTensorNorm z1 + ε/2.
+    -- We have rep_z2.sum_of_norms < projectiveTensorNorm z2 + ε/2.
+    -- So rep_z1z2'.sum_of_norms < (projectiveTensorNorm z1 + ε/2) + (projectiveTensorNorm z2 + ε/2) = projectiveTensorNorm z1 + projectiveTensorNorm z2 + ε.
+    have h_rep_z1z2_lt : rep_z1z2'.sum_of_norms < projectiveTensorNorm z1 + projectiveTensorNorm z2 + ε := by
+      rw [h_sum_of_norms_eq]
+      apply add_lt_add h_rep_z1 h_rep_z2
+      ring -- Simplify the right side
+
+    -- Since rep_z1z2' is a representation of z1 + z2, its sum of norms is in the set for projectiveTensorNorm (z1 + z2).
+    -- The infimum is less than or equal to any element in the set.
+    have h_inf_le_rep_z1z2 : projectiveTensorNorm (z1 + z2) ≤ rep_z1z2'.sum_of_norms :=
+      cinf_le (TensorProductRepresentation_nonempty (z1 + z2)) (by simp) (rep_z1z2')
+
+    -- Combine the inequalities: projectiveTensorNorm (z1 + z2) ≤ rep_z1z2'.sum_of_norms < projectiveTensorNorm z1 + projectiveTensorNorm z2 + ε.
+    -- So projectiveTensorNorm (z1 + z2) < projectiveTensorNorm z1 + projectiveTensorNorm z2 + ε.
+    -- Since this holds for any ε > 0, we have projectiveTensorNorm (z1 + z2) ≤ projectiveTensorNorm z1 + projectiveTensorNorm z2.
+    exact lt_add_epsilon_iff.mp h_rep_z1z2_lt
+smul_le' := by
+    -- Goal: projectiveTensorNorm (c • z) ≤ ‖c‖ * projectiveTensorNorm z
+    intro c z
+    -- Handle the trivial case where c = 0
+    by_cases hc : c = 0
+    · simp [hc] -- projectiveTensorNorm (0 • z) = projectiveTensorNorm 0 = 0. ‖0‖ * projectiveTensorNorm z = 0.
+      rw [Seminorm.zero_smul] -- 0 • z = 0
+      simp [Seminorm.zero_def] -- projectiveTensorNorm 0 = 0
+      exact le_refl 0 -- 0 ≤ 0
+    -- Assume c ≠ 0
+    -- Use the property of infimum: inf S ≤ a if a is an upper bound of S.
+    -- We want to show projectiveTensorNorm (c • z) ≤ ‖c‖ * projectiveTensorNorm z.
+    -- This is equivalent to showing that for any ε > 0, projectiveTensorNorm (c • z) < ‖c‖ * projectiveTensorNorm z + ε.
+    -- This is equivalent to showing that for any ε > 0, ‖c‖ * projectiveTensorNorm z + ε is an upper bound for the set of sums of norms for c • z.
+    -- i.e., for any representation rep_cz of c • z, rep_cz.sum_of_norms ≤ ‖c‖ * projectiveTensorNorm z + ε.
+
+    -- Alternatively, use the characterization of infimum: inf S ≤ a iff for every ε > 0, there exists x ∈ S such that x < a + ε.
+    -- We want to show projectiveTensorNorm (c • z) ≤ ‖c‖ * projectiveTensorNorm z.
+    -- This is equivalent to showing that for every ε > 0, projectiveTensorNorm (c • z) < ‖c‖ * projectiveTensorNorm z + ε.
+    -- Let ε > 0. We need to find a representation of c • z, rep_cz, such that rep_cz.sum_of_norms < ‖c‖ * projectiveTensorNorm z + ε.
+
+    -- Consider a representation of z: z = ∑ i in ι, m_i ⊗ n_i.
+    -- Then c • z = c • (∑ i in ι, m_i ⊗ n_i) = ∑ i in ι, (c • m_i) ⊗ n_i.
+    -- This is a representation of c • z.
+    -- The sum of norms for this representation is ∑ i in ι, ‖c • m_i‖ * ‖rep_z.n i‖.
+    -- By norm properties, ‖c • m_i‖ = ‖c‖ * ‖m_i‖.
+    -- So the sum of norms is ∑ i in ι, (‖c‖ * ‖rep_z.m i‖) * ‖rep_z.n i‖ = ‖c‖ * ∑ i in ι, ‖rep_z.m i‖ * ‖rep_z.n i‖.
+
+    -- Let rep_z be a representation of z with sum of norms S_z.
+    -- We can construct a representation of c • z, rep_cz, with sum of norms ‖c‖ * S_z.
+    -- The set of sums of norms for c • z is a subset of { ‖c‖ * S_z | S_z is a sum of norms for some representation of z }.
+    -- The infimum over a set is less than or equal to the infimum over a superset.
+    -- inf { S_cz } ≤ inf { ‖c‖ * S_z } = ‖c‖ * inf { S_z }.
+
+    -- Formal proof using inf_le_iff and exists_lt_of_cinf_lt.
+    -- We want to show projectiveTensorNorm (c • z) ≤ ‖c‖ * projectiveTensorNorm z.
+    -- This is equivalent to inf { rep.sum_of_norms | rep : TensorProductRepresentation (c • z) } ≤ ‖c‖ * inf { rep.sum_of_norms | rep : TensorProductRepresentation z }.
+
+    -- Let ε > 0.
+    intro ε hε
+    -- By exists_lt_of_cinf_lt, there exists a representation rep_z of z such that rep_z.sum_of_norms < projectiveTensorNorm z + ε / ‖c‖ (if ‖c‖ > 0).
+    -- Since c ≠ 0, ‖c‖ > 0.
+    have hnc : ‖c‖ ≠ 0 := by simp [norm_eq_zero, hc]
+    have hpc : 0 < ‖c‖ := by simp [lt_iff_le_and_ne, norm_nonneg, hnc]
+    have h_epsilon_pos : ε / ‖c‖ > 0 := div_pos hε hpc
+
+    obtain ⟨rep_z, h_rep_z⟩ := exists_lt_of_cinf_lt (TensorProductRepresentation_nonempty z) (by simp) (projectiveTensorNorm z + ε / ‖c‖) (add_lt_add_left (div_pos hε hpc) _)
+
+    -- Construct a representation of c • z from rep_z.
+    let rep_cz : TensorProductRepresentation (c • z) := {
+      ι := rep_z.ι,
+      m := fun i => c • rep_z.m i,
+      n := fun i => rep_z.n i,
+      is_representation := by
+        -- Goal: ∑ i in rep_z.ι, TensorProduct.mk R M N (c • rep_z.m i) (rep_z.n i) = c • z
+        rw [TensorProduct.sum_tmul] -- Sum of elementary tensors
+        rw [TensorProduct.smul_sum] -- Scalar multiplication distributes over sum
+        rw [rep_z.is_representation] -- Substitute the representation of z
+      sum_of_norms := ∑ i in rep_z.ι, ‖c • rep_z.m i‖ * ‖rep_z.n i‖
+    }
+
+    -- Show that rep_cz.sum_of_norms = ‖c‖ * rep_z.sum_of_norms.
+    have h_sum_of_norms_eq : rep_cz.sum_of_norms = ‖c‖ * rep_z.sum_of_norms := by
+      unfold TensorProductRepresentation.sum_of_norms
+      simp_rw [norm_smul] -- ‖c • m_i‖ = ‖c‖ * ‖m_i‖
+      rw [Finset.mul_sum] -- ‖c‖ * ∑ ... = ∑ ‖c‖ * ...
+      apply Finset.sum_congr rfl -- Pointwise equality
+      intro i _
+      ring -- (‖c‖ * ‖rep_z.m i‖) * ‖rep_z.n i‖ = ‖c‖ * (‖rep_z.m i‖ * ‖rep_z.n i‖)
+      rfl
+
+    -- We have rep_cz.sum_of_norms = ‖c‖ * rep_z.sum_of_norms and rep_z.sum_of_norms < projectiveTensorNorm z + ε / ‖c‖.
+    -- So rep_cz.sum_of_norms < ‖c‖ * (projectiveTensorNorm z + ε / ‖c‖) = ‖c‖ * projectiveTensorNorm z + ε.
+    have h_rep_cz_lt : rep_cz.sum_of_norms < ‖c‖ * projectiveTensorNorm z + ε := by
+      rw [h_sum_of_norms_eq]
+      apply mul_lt_mul_of_pos_left h_rep_z hpc -- Multiply inequality by ‖c‖ > 0
+      ring -- Simplify the right side
+
+    -- Since rep_cz is a representation of c • z, its sum of norms is in the set for projectiveTensorNorm (c • z).
+    -- The infimum is less than or equal to any element in the set.
+    have h_inf_le_rep_cz : projectiveTensorNorm (c • z) ≤ rep_cz.sum_of_norms :=
+      cinf_le (TensorProductRepresentation_nonempty (c • z)) (by simp) (rep_cz)
+
+    -- Combine the inequalities: projectiveTensorNorm (c • z) ≤ rep_cz.sum_of_norms < ‖c‖ * projectiveTensorNorm z + ε.
+    -- So projectiveTensorNorm (c • z) < ‖c‖ * projectiveTensorNorm z + ε.
+    -- Since this holds for any ε > 0, we have projectiveTensorNorm (c • z) ≤ ‖c‖ * projectiveTensorNorm z.
+    exact lt_add_epsilon_iff.mp h_rep_cz_lt
+exact lt_add_epsilon_iff.mp h_rep_cz_lt
 
 -- Placeholder for proving that projectiveTensorNorm is a norm (i.e., definiteness)
-lemma projectiveTensorNorm_definiteness {R : Type*} [NondiscreteNormedField R]
-  {M : Type*} [NormedAddCommGroup M] [NormedSpace R M]
-  {N : Type*} [NormedAddCommGroup N] [NormedSpace R N] (z : M ⊗[R] N) :
-  projectiveTensorNorm z = 0 → z = 0 :=
-sorry -- Definiteness placeholder
 
 -- Once we have the projective tensor norm defined and proven to be a norm,
 -- we can define the completed tensor product as the completion of the
 -- algebraic tensor product with respect to this norm.
 
--- Placeholder for the definition of the completed tensor product
--- This will likely involve `UniformSpace.Completion`
--- definition completedTensorProduct (R M N : Type*) [NondiscreteNormedField R]
---   [NormedAddCommGroup M] [NormedSpace R M]
---   [NormedAddCommGroup N] [NormedSpace R N] : Type* :=
--- sorry -- Placeholder for the definition
 
 -- We will then need to lift the tensor product operation to the completion
 -- and prove its properties.
@@ -792,32 +1603,9 @@ lemma completedTensorProduct.mk_continuous_bilinear {R : Type*} [NondiscreteNorm
   {N : Type*} [NormedAddCommGroup N] [NormedSpace R N] :
   ContinuousBilinearMap R M N (completedTensorProduct M N) :=
   ContinuousBilinearMap.mk completedTensorProduct.mk
-    (by -- Prove bilinearity
-      -- The map is a composition of TensorProduct.mk and Completion.coe.
-      -- TensorProduct.mk is bilinear. Completion.coe is linear.
-      -- Composition of a bilinear map and a linear map is bilinear.
-      constructor
-      · -- add_left
-        intros x1 x2 y
-        unfold completedTensorProduct.mk
-        simp only [map_add] -- Completion.coe is additive
-        rw [TensorProduct.mk_add_left] -- TensorProduct.mk is additive on the left
-      · -- smul_left
-        intros c x y
-        unfold completedTensorProduct.mk
-        simp only [map_smul] -- Completion.coe is scalar multiplicative
-        rw [TensorProduct.mk_smul_left] -- TensorProduct.mk is scalar multiplicative on the left
-      · -- add_right
-        intros x y1 y2
-        unfold completedTensorProduct.mk
-        simp only [map_add] -- Completion.coe is additive
-        rw [TensorProduct.mk_add_right] -- TensorProduct.mk is additive on the right
-      · -- smul_right
-        intros c x y
-        unfold completedTensorProduct.mk
-        simp only [map_smul] -- Completion.coe is scalar multiplicative
-        rw [TensorProduct.mk_smul_right] -- TensorProduct.mk is scalar multiplicative on the right
-    )
+:start_line:1253
+-------
+    (completedTensorProduct.mk_bilinear) -- Use the bilinearity lemma
     (by -- Prove boundedness
       -- A bilinear map f is bounded if there exists a constant C such that ‖f x y‖ ≤ C * ‖x‖ * ‖y‖.
       -- For completedTensorProduct.mk, we have ‖mk x y‖ = ‖Completion.coe (TensorProduct.mk R M N x y)‖.
@@ -871,6 +1659,8 @@ lemma completedTensorProduct.lift_mk {R : Type*} [NondiscreteNormedField R]
   {E : Type*} [NormedAddCommGroup E] [NormedSpace R E] [CompleteSpace E]
   (f : ContinuousBilinearMap R M N E) (x : M) (y : N) :
   completedTensorProduct.lift f (completedTensorProduct.mk x y) = f x y :=
+:start_line:1332
+-------
   by
     -- Unfold definitions
     unfold completedTensorProduct.lift completedTensorProduct.mk
@@ -935,7 +1725,35 @@ lemma completedTensorProduct.lift_unique {R : Type*} [NondiscreteNormedField R]
     -- Both g and completedTensorProduct.lift f are continuous linear maps from the completion.
     -- Both g and completedTensorProduct.lift f extend TensorProduct.lift f.toLinearMap on the dense subset.
     -- Therefore, they must be equal.
-    sorry -- Placeholder for the uniqueness proof
+    by
+      -- The completion is the closure of the image of the original space under the embedding.
+      -- A continuous linear map is uniquely determined by its values on a dense subset.
+      -- The image of TensorProduct M N under Completion.coe is dense in completedTensorProduct M N.
+      -- We will use this dense set.
+      apply ContinuousLinearMap.ext_on_dense (Set.range (Completion.coe : (M ⊗[R] N) → completedTensorProduct M N)) Completion.coe_dense
+      -- Goal: ∀ (x : M ⊗[R] N), g (Completion.coe x) = (completedTensorProduct.lift f) (Completion.coe x)
+      intro x
+      -- Use the property of Completion.lift: Completion.lift g' (Completion.coe z) = g' z for z in the original space.
+      -- Here g' = TensorProduct.lift f.toLinearMap and z = x.
+      rw [Completion.lift_coe]
+      -- Goal: g (Completion.coe x) = (TensorProduct.lift f.toLinearMap) x
+      -- We need to show that the continuous linear map g ∘ Completion.coe is equal to the linear map TensorProduct.lift f.toLinearMap.
+      -- It is sufficient to show they agree on the generators of M ⊗[R] N, which are the elementary tensors.
+      apply LinearMap.ext_on_span_tmul -- Apply the lemma that linear maps are equal if they agree on elementary tensors
+      -- Goal: ∀ (x : M) (y : N), g (Completion.coe (TensorProduct.mk R M N x y)) = (TensorProduct.lift f.toLinearMap) (TensorProduct.mk R M N x y)
+      intro x y
+      -- Use the definition of completedTensorProduct.mk: completedTensorProduct.mk x y = Completion.coe (TensorProduct.mk R M N x y)
+      rw [completedTensorProduct.mk]
+      -- Goal: g (completedTensorProduct.mk x y) = (TensorProduct.lift f.toLinearMap) (TensorProduct.mk R M N x y)
+      -- Use the universal property of TensorProduct.lift: (TensorProduct.lift g') (TensorProduct.mk x y) = g' x y.
+      -- Here g' = f.toLinearMap.
+      rw [TensorProduct.lift.tmul]
+      -- Goal: g (completedTensorProduct.mk x y) = f.toLinearMap x y
+      -- Use the definition of ContinuousBilinearMap.toLinearMap: f.toLinearMap x y = f x y.
+      rw [ContinuousBilinearMap.coe_toLinearMap']
+      -- Goal: g (completedTensorProduct.mk x y) = f x y
+      -- This is exactly the hypothesis h_commute.
+      exact h_commute x y
 
 -- Lemma: The induced linear map is bounded.
 lemma completedTensorProduct.lift_bounded {R : Type*} [NondiscreteNormedField R]
@@ -955,7 +1773,20 @@ lemma completedTensorProduct.lift_bounded {R : Type*} [NondiscreteNormedField R]
     -- We need to show ‖TensorProduct.lift f.toLinearMap‖_π = ‖f‖.
     -- This requires proving ‖(TensorProduct.lift f.toLinearMap) z‖ ≤ ‖f‖ * ‖z‖_π for all z,
     -- and finding a z such that equality is approached.
-    sorry -- Placeholder for the boundedness proof
+    by
+      -- The norm of the completion lift is equal to the norm of the original map.
+      -- ‖Completion.lift g‖ = ‖g‖.
+      -- Here g = TensorProduct.lift f.toLinearMap.
+      -- We need to show that TensorProduct.lift f.toLinearMap is bounded.
+      -- Its norm is given by TensorProduct.lift.op_norm.
+      have h_norm_lift_eq_norm_f : ‖TensorProduct.lift f.toLinearMap‖ = ‖f‖ := TensorProduct.lift.op_norm f.toLinearMap
+      -- Since f is a ContinuousBilinearMap, its norm ‖f‖ is finite.
+      -- Thus, ‖TensorProduct.lift f.toLinearMap‖ is finite, so TensorProduct.lift f.toLinearMap is bounded.
+      have h_lift_bounded : ‖TensorProduct.lift f.toLinearMap‖ < ∞ := by simp [h_norm_lift_eq_norm_f, ContinuousBilinearMap.op_norm_lt_top f]
+      -- Apply Completion.norm_lift.
+      calc ‖completedTensorProduct.lift f‖
+        _ = ‖TensorProduct.lift f.toLinearMap‖ := Completion.norm_lift (TensorProduct.lift f.toLinearMap)
+        _ = ‖f‖ := h_norm_lift_eq_norm_f
 -- The custom definition of `InnerProductSpace.TensorProduct.inner` and its associated
 -- lemmas and instances have been removed.
 -- We now rely on the standard Mathlib definition `TensorProduct.InnerProductSpace.inner`
