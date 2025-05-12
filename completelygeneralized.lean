@@ -6907,113 +6907,391 @@ lemma IsInterval.inter {I1 I2 : Set ℝ} (hI1 : IsInterval I1) (hI2 : IsInterval
       exact IsInterval.empty_set ∅ rfl
   -- Case 37: I1 is half_open_right_interval, I2 is closed_unbounded_left
   case half_open_right_interval a1 b1 h_a1_lt_b1 h_I1_eq hI2_closed_unbounded_left a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ico_inter_Ici]
+    -- The intersection of a half-open right interval [a1, b1) and a closed unbounded left interval [a2, ∞) is a half-open left interval [max a1 a2, b1) (possibly empty).
+    -- We need to show that Set.Ico (max a1 a2) b1 is an interval.
+    -- This is true if max a1 a2 < b1. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b1 : max a1 a2 < b1
+    · -- Case: max a1 a2 < b1. The intersection is the half-open left interval [max a1 a2, b1).
+      exact IsInterval.half_open_left_interval (max a1 a2) b1 h_max_lt_b1 rfl
+    · -- Case: max a1 a2 >= b1. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b1
+      rw [Set.Ico_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_max_lt_b1
+      exact IsInterval.empty_set ∅ rfl
   -- Case 38: I1 is half_open_right_interval, I2 is closed_unbounded_right
   case half_open_right_interval a1 b1 h_a1_lt_b1 h_I1_eq hI2_closed_unbounded_right a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ico_inter_Iic]
+    -- The intersection of a half-open right interval [a1, b1) and a closed unbounded right interval (-∞, a2] is a closed interval [a1, min b1 a2] (possibly empty).
+    -- We need to show that Set.Icc a1 (min b1 a2) is an interval.
+    -- This is true if a1 <= min b1 a2. If not, the interval is empty, which is also an interval.
+    by_cases h_a1_le_min : a1 <= min b1 a2
+    · -- Case: a1 <= min b1 a2. The intersection is the closed interval [a1, min b1 a2].
+      exact IsInterval.closed_interval a1 (min b1 a2) h_a1_le_min rfl
+    · -- Case: a1 > min b1 a2. The intersection is empty.
+      simp only [not_le] at h_a1_le_min
+      rw [Set.Icc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a1_le_min
+      exact IsInterval.empty_set ∅ rfl
   -- Case 39: I1 is half_open_right_interval, I2 is entire_space
   case half_open_right_interval a1 b1 h_a1_lt_b1 h_I1_eq hI2_entire_space h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_univ]
+    -- The intersection of a half-open right interval and the entire space is the half-open right interval itself.
+    -- Since I1 is a half-open right interval by hypothesis, the intersection is also an interval.
+    exact hI1
   -- Case 40: I1 is half_open_right_interval, I2 is empty_set
   case half_open_right_interval a1 b1 h_a1_lt_b1 h_I1_eq hI2_empty_set h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_empty]
+    -- The intersection of a half-open right interval and the empty set is the empty set, which is an interval.
+    exact IsInterval.empty_set ∅ rfl
 
   -- Case 41: I1 is open_unbounded_left, I2 is open_interval
   case open_unbounded_left a1 h_I1_eq hI2_open_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Ioo]
+    -- The intersection of an open unbounded left interval (a1, ∞) and an open interval (a2, b2) is an open interval (max a1 a2, b2) (possibly empty).
+    -- We need to show that Set.Ioo (max a1 a2) b2 is an interval.
+    -- This is true if max a1 a2 < b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b2 : max a1 a2 < b2
+    · -- Case: max a1 a2 < b2. The intersection is the open interval (max a1 a2, b2).
+      exact IsInterval.open_interval (max a1 a2) b2 h_max_lt_b2 rfl
+    · -- Case: max a1 a2 >= b2. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b2
+      rw [Set.Ioo_eq_empty_iff]
+      simp only [not_lt]
+      exact Or.inl h_max_lt_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 42: I1 is open_unbounded_left, I2 is closed_interval
   case open_unbounded_left a1 h_I1_eq hI2_closed_interval a2 b2 h_a2_le_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Icc]
+    -- The intersection of an open unbounded left interval (a1, ∞) and a closed interval [a2, b2] is a half-open right interval (max a1 a2, b2] (possibly empty).
+    -- We need to show that Set.Ioc (max a1 a2) b2 is an interval.
+    -- This is true if max a1 a2 < b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b2 : max a1 a2 < b2
+    · -- Case: max a1 a2 < b2. The intersection is the half-open right interval (max a1 a2, b2].
+      exact IsInterval.half_open_right_interval (max a1 a2) b2 h_max_lt_b2 rfl
+    · -- Case: max a1 a2 >= b2. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b2
+      rw [Set.Ioc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_max_lt_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 43: I1 is open_unbounded_left, I2 is half_open_left_interval
   case open_unbounded_left a1 h_I1_eq hI2_half_open_left_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Ioc]
+    -- The intersection of an open unbounded left interval (a1, ∞) and a half-open left interval (a2, b2] is a half-open right interval (max a1 a2, b2] (possibly empty).
+    -- We need to show that Set.Ioc (max a1 a2) b2 is an interval.
+    -- This is true if max a1 a2 < b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b2 : max a1 a2 < b2
+    · -- Case: max a1 a2 < b2. The intersection is the half-open right interval (max a1 a2, b2].
+      exact IsInterval.half_open_right_interval (max a1 a2) b2 h_max_lt_b2 rfl
+    · -- Case: max a1 a2 >= b2. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b2
+      rw [Set.Ioc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_max_lt_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 44: I1 is open_unbounded_left, I2 is half_open_right_interval
   case open_unbounded_left a1 h_I1_eq hI2_half_open_right_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Ico]
+    -- The intersection of an open unbounded left interval (a1, ∞) and a half-open right interval [a2, b2) is a half-open left interval [max a1 a2, b2) (possibly empty).
+    -- We need to show that Set.Ico (max a1 a2) b2 is an interval.
+    -- This is true if max a1 a2 < b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b2 : max a1 a2 < b2
+    · -- Case: max a1 a2 < b2. The intersection is the half-open left interval [max a1 a2, b2).
+      exact IsInterval.half_open_left_interval (max a1 a2) b2 h_max_lt_b2 rfl
+    · -- Case: max a1 a2 >= b2. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b2
+      rw [Set.Ico_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_max_lt_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 45: I1 is open_unbounded_left, I2 is open_unbounded_left
   case open_unbounded_left a1 h_I1_eq hI2_open_unbounded_left a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Ioi]
+    -- The intersection of two open unbounded left intervals (a1, ∞) and (a2, ∞) is the open unbounded left interval (max a1 a2, ∞).
+    -- We need to show that Set.Ioi (max a1 a2) is an interval.
+    exact IsInterval.open_unbounded_left (max a1 a2) rfl
   -- Case 46: I1 is open_unbounded_left, I2 is open_unbounded_right
   case open_unbounded_left a1 h_I1_eq hI2_open_unbounded_right a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Iio]
+    -- The intersection of an open unbounded left interval (a1, ∞) and an open unbounded right interval (-∞, a2) is an open interval (a1, a2) (possibly empty).
+    -- We need to show that Set.Ioo a1 a2 is an interval.
+    -- This is true if a1 < a2. If not, the interval is empty, which is also an interval.
+    by_cases h_a1_lt_a2 : a1 < a2
+    · -- Case: a1 < a2. The intersection is the open interval (a1, a2).
+      exact IsInterval.open_interval a1 a2 h_a1_lt_a2 rfl
+    · -- Case: a1 >= a2. The intersection is empty.
+      simp only [not_lt] at h_a1_lt_a2
+      rw [Set.Ioo_eq_empty_iff]
+      simp only [not_lt]
+      exact Or.inl h_a1_lt_a2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 47: I1 is open_unbounded_left, I2 is closed_unbounded_left
   case open_unbounded_left a1 h_I1_eq hI2_closed_unbounded_left a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Ici]
+    -- The intersection of an open unbounded left interval (a1, ∞) and a closed unbounded left interval [a2, ∞) is the closed unbounded left interval [max a1 a2, ∞).
+    -- We need to show that Set.Ici (max a1 a2) is an interval.
+    exact IsInterval.closed_unbounded_left (max a1 a2) rfl
   -- Case 48: I1 is open_unbounded_left, I2 is closed_unbounded_right
   case open_unbounded_left a1 h_I1_eq hI2_closed_unbounded_right a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ioi_inter_Iic]
+    -- The intersection of an open unbounded left interval (a1, ∞) and a closed unbounded right interval (-∞, a2] is a half-open right interval (a1, a2] (possibly empty).
+    -- We need to show that Set.Ioc a1 a2 is an interval.
+    -- This is true if a1 < a2. If not, the interval is empty, which is also an interval.
+    by_cases h_a1_lt_a2 : a1 < a2
+    · -- Case: a1 < a2. The intersection is the half-open right interval (a1, a2].
+      exact IsInterval.half_open_right_interval a1 a2 h_a1_lt_a2 rfl
+    · -- Case: a1 >= a2. The intersection is empty.
+      simp only [not_lt] at h_a1_lt_a2
+      rw [Set.Ioc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a1_lt_a2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 49: I1 is open_unbounded_left, I2 is entire_space
   case open_unbounded_left a1 h_I1_eq hI2_entire_space h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_univ]
+    -- The intersection of an open unbounded left interval and the entire space is the open unbounded left interval itself.
+    -- Since I1 is an open unbounded left interval by hypothesis, the intersection is also an interval.
+    exact hI1
   -- Case 50: I1 is open_unbounded_left, I2 is empty_set
   case open_unbounded_left a1 h_I1_eq hI2_empty_set h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_empty]
+    -- The intersection of an open unbounded left interval and the empty set is the empty set, which is an interval.
+    exact IsInterval.empty_set ∅ rfl
 
   -- Case 51: I1 is open_unbounded_right, I2 is open_interval
   case open_unbounded_right a1 h_I1_eq hI2_open_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Ioo]
+    -- The intersection of an open unbounded right interval (-∞, a1) and an open interval (a2, b2) is an open interval (max a2 a1, b2) (possibly empty).
+    -- We need to show that Set.Ioo (max a2 a1) b2 is an interval.
+    -- This is true if max a2 a1 < b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b2 : max a2 a1 < b2
+    · -- Case: max a2 a1 < b2. The intersection is the open interval (max a2 a1, b2).
+      exact IsInterval.open_interval (max a2 a1) b2 h_max_lt_b2 rfl
+    · -- Case: max a2 a1 >= b2. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b2
+      rw [Set.Ioo_eq_empty_iff]
+      simp only [not_lt]
+      exact Or.inl h_max_lt_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 52: I1 is open_unbounded_right, I2 is closed_interval
   case open_unbounded_right a1 h_I1_eq hI2_closed_interval a2 b2 h_a2_le_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Icc]
+    -- The intersection of an open unbounded right interval (-∞, a1) and a closed interval [a2, b2] is a half-open left interval [a2, min a1 b2) (possibly empty).
+    -- We need to show that Set.Ico a2 (min a1 b2) is an interval.
+    -- This is true if a2 < min a1 b2. If not, the interval is empty, which is also an interval.
+    by_cases h_a2_lt_min : a2 < min a1 b2
+    · -- Case: a2 < min a1 b2. The intersection is the half-open left interval [a2, min a1 b2).
+      exact IsInterval.half_open_left_interval a2 (min a1 b2) h_a2_lt_min rfl
+    · -- Case: a2 >= min a1 b2. The intersection is empty.
+      simp only [not_lt] at h_a2_lt_min
+      rw [Set.Ico_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a2_lt_min
+      exact IsInterval.empty_set ∅ rfl
   -- Case 53: I1 is open_unbounded_right, I2 is half_open_left_interval
   case open_unbounded_right a1 h_I1_eq hI2_half_open_left_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Ioc]
+    -- The intersection of an open unbounded right interval (-∞, a1) and a half-open left interval (a2, b2] is a half-open right interval (a2, min a1 b2] (possibly empty).
+    -- We need to show that Set.Ioc a2 (min a1 b2) is an interval.
+    -- This is true if a2 < min a1 b2. If not, the interval is empty, which is also an interval.
+    by_cases h_a2_lt_min : a2 < min a1 b2
+    · -- Case: a2 < min a1 b2. The intersection is the half-open right interval (a2, min a1 b2].
+      exact IsInterval.half_open_right_interval a2 (min a1 b2) h_a2_lt_min rfl
+    · -- Case: a2 >= min a1 b2. The intersection is empty.
+      simp only [not_lt] at h_a2_lt_min
+      rw [Set.Ioc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a2_lt_min
+      exact IsInterval.empty_set ∅ rfl
   -- Case 54: I1 is open_unbounded_right, I2 is half_open_right_interval
   case open_unbounded_right a1 h_I1_eq hI2_half_open_right_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Ico]
+    -- The intersection of an open unbounded right interval (-∞, a1) and a half-open right interval [a2, b2) is a half-open left interval [a2, min a1 b2) (possibly empty).
+    -- We need to show that Set.Ico a2 (min a1 b2) is an interval.
+    -- This is true if a2 < min a1 b2. If not, the interval is empty, which is also an interval.
+    by_cases h_a2_lt_min : a2 < min a1 b2
+    · -- Case: a2 < min a1 b2. The intersection is the half-open left interval [a2, min a1 b2).
+      exact IsInterval.half_open_left_interval a2 (min a1 b2) h_a2_lt_min rfl
+    · -- Case: a2 >= min a1 b2. The intersection is empty.
+      simp only [not_lt] at h_a2_lt_min
+      rw [Set.Ico_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a2_lt_min
+      exact IsInterval.empty_set ∅ rfl
   -- Case 55: I1 is open_unbounded_right, I2 is open_unbounded_left
   case open_unbounded_right a1 h_I1_eq hI2_open_unbounded_left a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Ioi]
+    -- The intersection of an open unbounded right interval (-∞, a1) and an open unbounded left interval (a2, ∞) is an open interval (a2, a1) (possibly empty).
+    -- We need to show that Set.Ioo a2 a1 is an interval.
+    -- This is true if a2 < a1. If not, the interval is empty, which is also an interval.
+    by_cases h_a2_lt_a1 : a2 < a1
+    · -- Case: a2 < a1. The intersection is the open interval (a2, a1).
+      exact IsInterval.open_interval a2 a1 h_a2_lt_a1 rfl
+    · -- Case: a2 >= a1. The intersection is empty.
+      simp only [not_lt] at h_a2_lt_a1
+      rw [Set.Ioo_eq_empty_iff]
+      simp only [not_lt]
+      exact Or.inl h_a2_lt_a1
+      exact IsInterval.empty_set ∅ rfl
   -- Case 56: I1 is open_unbounded_right, I2 is open_unbounded_right
   case open_unbounded_right a1 h_I1_eq hI2_open_unbounded_right a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Iio]
+    -- The intersection of two open unbounded right intervals (-∞, a1) and (-∞, a2) is the open unbounded right interval (-∞, min a1 a2).
+    -- We need to show that Set.Iio (min a1 a2) is an interval.
+    exact IsInterval.open_unbounded_right (min a1 a2) rfl
   -- Case 57: I1 is open_unbounded_right, I2 is closed_unbounded_left
   case open_unbounded_right a1 h_I1_eq hI2_closed_unbounded_left a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Ici]
+    -- The intersection of an open unbounded right interval (-∞, a1) and a closed unbounded left interval [a2, ∞) is a half-open left interval [a2, a1) (possibly empty).
+    -- We need to show that Set.Ico a2 a1 is an interval.
+    -- This is true if a2 < a1. If not, the interval is empty, which is also an interval.
+    by_cases h_a2_lt_a1 : a2 < a1
+    · -- Case: a2 < a1. The intersection is the half-open left interval [a2, a1).
+      exact IsInterval.half_open_left_interval a2 a1 h_a2_lt_a1 rfl
+    · -- Case: a2 >= a1. The intersection is empty.
+      simp only [not_lt] at h_a2_lt_a1
+      rw [Set.Ico_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a2_lt_a1
+      exact IsInterval.empty_set ∅ rfl
   -- Case 58: I1 is open_unbounded_right, I2 is closed_unbounded_right
   case open_unbounded_right a1 h_I1_eq hI2_closed_unbounded_right a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iio_inter_Iic]
+    -- The intersection of an open unbounded right interval (-∞, a1) and a closed unbounded right interval (-∞, a2] is the closed unbounded right interval (-∞, min a1 a2].
+    -- We need to show that Set.Iic (min a1 a2) is an interval.
+    exact IsInterval.closed_unbounded_right (min a1 a2) rfl
   -- Case 59: I1 is open_unbounded_right, I2 is entire_space
   case open_unbounded_right a1 h_I1_eq hI2_entire_space h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_univ]
+    -- The intersection of an open unbounded right interval and the entire space is the open unbounded right interval itself.
+    -- Since I1 is an open unbounded right interval by hypothesis, the intersection is also an interval.
+    exact hI1
   -- Case 60: I1 is open_unbounded_right, I2 is empty_set
   case open_unbounded_right a1 h_I1_eq hI2_empty_set h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_empty]
+    -- The intersection of an open unbounded right interval and the empty set is the empty set, which is an interval.
+    exact IsInterval.empty_set ∅ rfl
 
   -- Case 61: I1 is closed_unbounded_left, I2 is open_interval
   case closed_unbounded_left a1 h_I1_eq hI2_open_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ici_inter_Ioo]
+    -- The intersection of a closed unbounded left interval [a1, ∞) and an open interval (a2, b2) is an open interval (max a1 a2, b2) (possibly empty).
+    -- We need to show that Set.Ioo (max a1 a2) b2 is an interval.
+    -- This is true if max a1 a2 < b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b2 : max a1 a2 < b2
+    · -- Case: max a1 a2 < b2. The intersection is the open interval (max a1 a2, b2).
+      exact IsInterval.open_interval (max a1 a2) b2 h_max_lt_b2 rfl
+    · -- Case: max a1 a2 >= b2. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b2
+      rw [Set.Ioo_eq_empty_iff]
+      simp only [not_lt]
+      exact Or.inl h_max_lt_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 62: I1 is closed_unbounded_left, I2 is closed_interval
   case closed_unbounded_left a1 h_I1_eq hI2_closed_interval a2 b2 h_a2_le_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ici_inter_Icc]
+    -- The intersection of a closed unbounded left interval [a1, ∞) and a closed interval [a2, b2] is a closed interval [max a1 a2, b2] (possibly empty).
+    -- We need to show that Set.Icc (max a1 a2) b2 is an interval.
+    -- This is true if max a1 a2 <= b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_le_b2 : max a1 a2 <= b2
+    · -- Case: max a1 a2 <= b2. The intersection is the closed interval [max a1 a2, b2].
+      exact IsInterval.closed_interval (max a1 a2) b2 h_max_le_b2 rfl
+    · -- Case: max a1 a2 > b2. The intersection is empty.
+      simp only [not_le] at h_max_le_b2
+      rw [Set.Icc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_max_le_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 63: I1 is closed_unbounded_left, I2 is half_open_left_interval
   case closed_unbounded_left a1 h_I1_eq hI2_half_open_left_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
     sorry
   -- Case 64: I1 is closed_unbounded_left, I2 is half_open_right_interval
   case closed_unbounded_left a1 h_I1_eq hI2_half_open_right_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ici_inter_Ico]
+    -- The intersection of a closed unbounded left interval [a1, ∞) and a half-open right interval [a2, b2) is a half-open left interval [max a1 a2, b2) (possibly empty).
+    -- We need to show that Set.Ico (max a1 a2) b2 is an interval.
+    -- This is true if max a1 a2 < b2. If not, the interval is empty, which is also an interval.
+    by_cases h_max_lt_b2 : max a1 a2 < b2
+    · -- Case: max a1 a2 < b2. The intersection is the half-open left interval [max a1 a2, b2).
+      exact IsInterval.half_open_left_interval (max a1 a2) b2 h_max_lt_b2 rfl
+    · -- Case: max a1 a2 >= b2. The intersection is empty.
+      simp only [not_lt] at h_max_lt_b2
+      rw [Set.Ico_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_max_lt_b2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 65: I1 is closed_unbounded_left, I2 is open_unbounded_left
   case closed_unbounded_left a1 h_I1_eq hI2_open_unbounded_left a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ici_inter_Ioi]
+    -- The intersection of a closed unbounded left interval [a1, ∞) and an open unbounded left interval (a2, ∞) is the open unbounded left interval (max a1 a2, ∞).
+    -- We need to show that Set.Ioi (max a1 a2) is an interval.
+    exact IsInterval.open_unbounded_left (max a1 a2) rfl
   -- Case 66: I1 is closed_unbounded_left, I2 is open_unbounded_right
   case closed_unbounded_left a1 h_I1_eq hI2_open_unbounded_right a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ici_inter_Iio]
+    -- The intersection of a closed unbounded left interval [a1, ∞) and an open unbounded right interval (-∞, a2) is a half-open left interval [a1, a2) (possibly empty).
+    -- We need to show that Set.Ico a1 a2 is an interval.
+    -- This is true if a1 < a2. If not, the interval is empty, which is also an interval.
+    by_cases h_a1_lt_a2 : a1 < a2
+    · -- Case: a1 < a2. The intersection is the half-open left interval [a1, a2).
+      exact IsInterval.half_open_left_interval a1 a2 h_a1_lt_a2 rfl
+    · -- Case: a1 >= a2. The intersection is empty.
+      simp only [not_lt] at h_a1_lt_a2
+      rw [Set.Ico_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a1_lt_a2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 67: I1 is closed_unbounded_left, I2 is closed_unbounded_left
   case closed_unbounded_left a1 h_I1_eq hI2_closed_unbounded_left a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ici_inter_Ici]
+    -- The intersection of two closed unbounded left intervals [a1, ∞) and [a2, ∞) is the closed unbounded left interval [max a1 a2, ∞).
+    -- We need to show that Set.Ici (max a1 a2) is an interval.
+    exact IsInterval.closed_unbounded_left (max a1 a2) rfl
   -- Case 68: I1 is closed_unbounded_left, I2 is closed_unbounded_right
   case closed_unbounded_left a1 h_I1_eq hI2_closed_unbounded_right a2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Ici_inter_Iic]
+    -- The intersection of a closed unbounded left interval [a1, ∞) and a closed unbounded right interval (-∞, a2] is a closed interval [a1, a2] (possibly empty).
+    -- We need to show that Set.Icc a1 a2 is an interval.
+    -- This is true if a1 <= a2. If not, the interval is empty, which is also an interval.
+    by_cases h_a1_le_a2 : a1 <= a2
+    · -- Case: a1 <= a2. The intersection is the closed interval [a1, a2].
+      exact IsInterval.closed_interval a1 a2 h_a1_le_a2 rfl
+    · -- Case: a1 > a2. The intersection is empty.
+      simp only [not_le] at h_a1_le_a2
+      rw [Set.Icc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a1_le_a2
+      exact IsInterval.empty_set ∅ rfl
   -- Case 69: I1 is closed_unbounded_left, I2 is entire_space
   case closed_unbounded_left a1 h_I1_eq hI2_entire_space h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_univ]
+    -- The intersection of a closed unbounded left interval and the entire space is the closed unbounded left interval itself.
+    -- Since I1 is a closed unbounded left interval by hypothesis, the intersection is also an interval.
+    exact hI1
   -- Case 70: I1 is closed_unbounded_left, I2 is empty_set
   case closed_unbounded_left a1 h_I1_eq hI2_empty_set h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.inter_empty]
+    -- The intersection of a closed unbounded left interval and the empty set is the empty set, which is an interval.
+    exact IsInterval.empty_set ∅ rfl
 
   -- Case 71: I1 is closed_unbounded_right, I2 is open_interval
   case closed_unbounded_right a1 h_I1_eq hI2_open_interval a2 b2 h_a2_lt_b2 h_I2_eq =>
-    sorry
+    rw [h_I1_eq, h_I2_eq, Set.Iic_inter_Ioo]
+    -- The intersection of a closed unbounded right interval (-∞, a1] and an open interval (a2, b2) is a half-open right interval (a2, min a1 b2] (possibly empty).
+    -- We need to show that Set.Ioc a2 (min a1 b2) is an interval.
+    -- This is true if a2 < min a1 b2. If not, the interval is empty, which is also an interval.
+    by_cases h_a2_lt_min : a2 < min a1 b2
+    · -- Case: a2 < min a1 b2. The intersection is the half-open right interval (a2, min a1 b2].
+      exact IsInterval.half_open_right_interval a2 (min a1 b2) h_a2_lt_min rfl
+    · -- Case: a2 >= min a1 b2. The intersection is empty.
+      simp only [not_lt] at h_a2_lt_min
+      rw [Set.Ioc_eq_empty_iff]
+      simp only [not_le]
+      exact Or.inl h_a2_lt_min
+      exact IsInterval.empty_set ∅ rfl
   -- Case 72: I1 is closed_unbounded_right, I2 is closed_interval
   case closed_unbounded_right a1 h_I1_eq hI2_closed_interval a2 b2 h_a2_le_b2 h_I2_eq =>
     sorry
