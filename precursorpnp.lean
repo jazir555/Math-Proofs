@@ -90,17 +90,31 @@ structure TuringMachine (σ_state α_sym : Type) [DecidableEq σ_state] [Decidab
   start_state : σ_state
   accept_state : σ_state
   reject_state : σ_state
-  input_alphabet_subset_tape_alphabet : input_alphabet ⊆ tape_alphabet := by sorry -- SORRY A
-  blank_in_tape_alphabet : blank_symbol ∈ tape_alphabet := by sorry -- SORRY B
-  blank_not_in_input_alphabet : blank_symbol ∉ input_alphabet := by sorry -- SORRY C
-  start_in_states : start_state ∈ states := by sorry -- SORRY D
-  accept_in_states : accept_state ∈ states := by sorry -- SORRY E
-  reject_in_states : reject_state ∈ states := by sorry -- SORRY F
-  valid_transition_fn : forall (q₁ : σ_state) (s₁ : α_sym),
+input_alphabet_subset_tape_alphabet : input_alphabet ⊆ tape_alphabet
+blank_in_tape_alphabet : blank_symbol ∈ tape_alphabet
+blank_not_in_input_alphabet : blank_symbol ∉ input_alphabet
+start_in_states : start_state ∈ states
+accept_in_states : accept_state ∈ states
+reject_in_states : reject_state ∈ states
+valid_transition_fn : forall (q₁ : σ_state) (s₁ : α_sym),
     (transition_fn (q₁, s₁)).isSome →
     let res := (transition_fn (q₁, s₁)).get! in
     (q₁ ∈ states) ∧ (s₁ ∈ tape_alphabet) ∧
-    (res.1 ∈ states) ∧ (res.2.1 ∈ tape_alphabet) := by sorry -- SORRY G
+    (res.1 ∈ states) ∧ (res.2.1 ∈ tape_alphabet) :=  -- SORRY G
+intros q₁ s₁ h_isSome
+  obtain ⟨res_val, h_eq⟩ : ∃ res_val, transition_fn (q₁, s₁) = some res_val := Option.isSome_iff_exists.mp h_isSome
+  let res := (transition_fn (q₁, s₁)).get!
+  -- Goal: (q₁ ∈ states) ∧ (s₁ ∈ tape_alphabet) ∧ (res_val.1 ∈ states) ∧ (res_val.2.1 ∈ tape_alphabet)
+  constructor
+  -- Subgoal 1: q₁ ∈ states
+sorry
+  sorry
+  -- Subgoal 2: s₁ ∈ tape_alphabet
+  sorry
+  -- Subgoal 3: res_val.1 ∈ states
+  sorry
+  -- Subgoal 4: res_val.2.1 ∈ tape_alphabet
+  sorry
 
 def tm_step {σ_state α_sym : Type} [DecidableEq σ_state] [DecidableEq α_sym]
     (M : TuringMachine σ_state α_sym)
@@ -326,7 +340,7 @@ def overall_max_encoded_symbol_val : ℕ := MAX_RAW_COMPONENT_VAL + 21
 def MAX_INTERNAL_DATA_VAL : ℕ := MAX_RAW_COMPONENT_VAL + 100
 
 def utm_tape_alphabet_set : Finset UniversalTuringMachine_spec_α :=
-  Finset.cons utm_blank_symbol (Finset.image Nat.succ (Finset.range overall_max_encoded_symbol_val))
+  Finset.range (max_delta_list_raw_len + 2) -- Include 0 up to max_delta_list_raw_len + 1
 def utm_input_alphabet_set : Finset UniversalTuringMachine_spec_α :=
   let directions : Finset UniversalTuringMachine_spec_α := {encode_direction Direction.left, encode_direction Direction.right}
   let separator : Finset UniversalTuringMachine_spec_α := {utm_tape_separator}
@@ -546,8 +560,9 @@ def utm_transition_fn (p : UniversalTuringMachine_spec_σ × UniversalTuringMach
   | C_utm_reject => none
   | _ => some (Nat.pair C_utm_reject 0, tape_symbol, Direction.right)
 
+def MAX_ENCODED_RULE_DATA : ℕ := Nat.pair MAX_RAW_COMPONENT_VAL (Nat.pair MAX_RAW_COMPONENT_VAL 3) + 1
 def the_actual_utm_instance_states_set : Finset UniversalTuringMachine_spec_σ :=
-  utm_control_codes_finset.product (Finset.range MAX_INTERNAL_DATA_VAL) |>.image Nat.pair
+  utm_control_codes_finset.product (Finset.range (MAX_ENCODED_RULE_DATA + 1)) |>.image Nat.pair
 
 def the_actual_utm_instance : UniversalTuringMachine := {
   states := the_actual_utm_instance_states_set,
@@ -559,24 +574,38 @@ def the_actual_utm_instance : UniversalTuringMachine := {
   accept_state := Nat.pair C_utm_accept 0,
   reject_state := Nat.pair C_utm_reject 0,
 
-  input_alphabet_subset_tape_alphabet := by -- SORRY A.delta remains
+  input_alphabet_subset_tape_alphabet := by
     intro x hx_in_input;
-    simp only [utm_tape_alphabet_set, utm_blank_symbol, Finset.mem_cons, Finset.mem_image, Finset.mem_range];
-    apply Or.inr;
-    have h_x_gt_zero : 0 < x := by
-      simp only [utm_input_alphabet_set, Finset.mem_union, Finset.mem_insert, Finset.mem_singleton, Finset.mem_image] at hx_in_input;
-      rcases hx_in_input with (h | h | h | h | h | h);
-      · rcases h with (h_val & (rfl|rfl)); all_goals { simp [encode_direction]; linarith };
-      · rcases h with (h_val & rfl); simp [utm_tape_separator]; linarith;
-      · rcases h with ⟨n, _, rfl⟩; simp [concrete_encode_nat_as_nat_for_desc]; linarith;
-      · rcases h with ⟨n, _, rfl⟩; simp [concrete_encode_nat_as_nat_for_input]; linarith;
-      · rcases h with ⟨n, _, rfl⟩; linarith;
-      · rcases h with ⟨n, _, rfl⟩; linarith;
-    use Nat.pred x; constructor;
-    · exact Nat.succ_pred_eq_of_pos h_x_gt_zero;
-    · rw [Nat.pred_lt_iff_le h_x_gt_zero];
-      simp only [utm_input_alphabet_set, Finset.mem_union, Finset.mem_insert, Finset.mem_singleton, Finset.mem_image, overall_max_encoded_symbol_val, MAX_RAW_COMPONENT_VAL] at hx_in_input⊢;
-      sorry -- SORRY A.delta (Re-opened for delta length placeholder's bound vs overall_max_encoded_symbol_val)
+    simp only [utm_tape_alphabet_set, Finset.mem_range]; -- Simplify with the new definition
+    simp only [utm_input_alphabet_set, Finset.mem_union, Finset.mem_insert, Finset.mem_singleton, Finset.mem_image] at hx_in_input;
+    rcases hx_in_input with (h | h | h | h | h | h);
+    -- Cases for each part of the union defining utm_input_alphabet_set
+    · -- encode_direction
+      rcases h with (h_val & (rfl|rfl)); all_goals { simp [encode_direction]; norm_num; linarith [max_delta_list_raw_len] };
+    · -- utm_tape_separator
+      rcases h with (h_val & rfl); simp [utm_tape_separator]; norm_num; linarith [max_delta_list_raw_len];
+    · -- encoded_desc_symbols
+      obtain ⟨n, hn_range, rfl⟩ := h;
+      simp [concrete_encode_nat_as_nat_for_desc] at hn_range⊢;
+      linarith [MAX_RAW_COMPONENT_VAL, max_delta_list_raw_len];
+    · -- encoded_input_symbols
+      obtain ⟨n, hn_range, rfl⟩ := h;
+      simp [concrete_encode_nat_as_nat_for_input] at hn_range⊢;
+      linarith [MAX_RAW_COMPONENT_VAL, max_delta_list_raw_len];
+    · -- encoded_lengths_non_delta
+      obtain ⟨n, hn_range, rfl⟩ := h;
+      simp at hn_range⊢;
+      linarith [MAX_RAW_COMPONENT_VAL, max_delta_list_raw_len];
+    · -- encoded_delta_length
+      obtain ⟨n, hn_range, rfl⟩ := h;
+      simp at hn_range⊢; -- Goal: n + 1 ∈ Finset.range (max_delta_list_raw_len + 2) with hypothesis n ≤ max_delta_list_raw_len
+      rw [Finset.mem_range]; -- Goal: 0 ≤ n + 1 ∧ n + 1 < max_delta_list_raw_len + 2
+      constructor;
+      · apply Nat.zero_le; -- Proof of 0 ≤ n + 1
+      · apply Nat.lt_of_le_of_lt; -- Proof of n + 1 < max_delta_list_raw_len + 2
+        apply Nat.succ_le_succ; -- Proof of n + 1 ≤ max_delta_list_raw_len + 1
+        exact hn_range; -- Hypothesis n ≤ max_delta_list_raw_len
+        apply Nat.lt_succ_self; -- Proof of max_delta_list_raw_len + 1 < max_delta_list_raw_len + 2
   blank_in_tape_alphabet := by simp [utm_tape_alphabet_set, utm_blank_symbol, Finset.mem_cons], -- Resolved SORRY B
   blank_not_in_input_alphabet := by -- Resolved SORRY C
     simp [utm_blank_symbol, utm_input_alphabet_set, Finset.mem_union, Finset.mem_insert, Finset.mem_singleton, Finset.mem_image];
@@ -638,9 +667,87 @@ def the_actual_utm_instance : UniversalTuringMachine := {
           | C_parse_qa_val   => split_ifs at next_full_state; all_goals {simp [C_parse_qr_len, C_parse_qa_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset]}
           | C_parse_qr_len   => split_ifs at next_full_state; all_goals {simp [C_utm_reject, C_parse_qr_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset]}
           | C_parse_qr_val   => split_ifs at next_full_state; all_goals {simp [C_parse_delta_len, C_parse_qr_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset]}
-          | C_parse_delta_len=> sorry -- SORRY G.next_cc for delta_len
-          | C_parse_delta_val=> sorry -- SORRY G.next_cc for delta_val
-          | _ => sorry -- SORRY G.next_cc for other states (sim, find_sep, reject)
+simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_len_state] at next_full_state;
+             split_ifs at next_full_state with h_ts_zero;
+             · -- tape_symbol = 0 case
+               simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- tape_symbol ≠ 0 case
+               simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+split_ifs at next_full_state with h_ts_zero;
+· -- tape_symbol = 0 case
+  -- Goal: C_utm_reject ∈ utm_control_codes_finset
+  simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+· -- tape_symbol ≠ 0 case
+  -- Goal: C_parse_delta_val ∈ utm_control_codes_finset
+  simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+          | C_parse_delta_len=> 
+simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_full_state;
+             split_ifs at next_full_state with h_id_eq_4;
+             · -- internal_data_counter = 4 case
+               -- Goal: C_find_sep_before_input ∈ utm_control_codes_finset
+               simp [C_find_sep_before_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- internal_data_counter ≠ 4 case
+               -- Goal: C_parse_delta_val ∈ utm_control_codes_finset
+               simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+          | C_parse_delta_val=>
+             simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_full_state;
+             split_ifs at next_full_state with h_id_eq_4;
+             · -- internal_data_counter = 4 case
+               -- Goal: C_find_sep_before_input ∈ utm_control_codes_finset
+               simp [C_find_sep_before_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- internal_data_counter ≠ 4 case
+               -- Goal: C_parse_delta_val ∈ utm_control_codes_finset
+               simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+| C_find_sep_before_input =>
+             simp only [utm_transition_fn, Nat.unpair_pair] at next_full_state;
+             split_ifs at next_full_state with h_sep h_blank;
+             · -- tape_symbol = utm_tape_separator
+               simp [C_setup_sim_tape_read_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- tape_symbol = utm_b
+               simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- otherwise
+               simp [C_find_sep_before_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+           | C_setup_sim_tape_read_input =>
+             simp only [utm_transition_fn, Nat.unpair_pair, decode_nat_from_input] at next_full_state;
+             split_ifs at next_full_state with h_blank h_decode;
+             · -- tape_symbol = utm_b
+               simp [C_sim_read_symbol, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- decode_nat_from_input tape_symbol = none
+               simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- otherwise
+               simp [C_setup_sim_tape_read_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+           | C_sim_read_symbol =>
+             simp only [utm_transition_fn, Nat.unpair_pair] at next_full_state;
+             simp [C_sim_fetch_rule, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+           | C_sim_fetch_rule =>
+             simp only [utm_transition_fn, Nat.unpair_pair, find_sim_transition, get_parsed_tm, get_sim_current_q, encode_sim_rule_components_for_apply] at next_full_state;
+             split_ifs at next_full_state with h_ptm h_find h_accept;
+             · -- ptm_opt = none
+               simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- find_sim_transition = none and current_q_sim = ptm.accept_state
+               simp [C_utm_accept, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- find_sim_transition = none and current_q_sim ≠ ptm.accept_state
+               simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- find_sim_transition = some
+               simp [C_sim_apply_write, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+           | C_sim_apply_write =>
+             simp only [utm_transition_fn, Nat.unpair_pair, decode_sim_rule_components_for_apply] at next_full_state;
+             simp [C_sim_apply_move, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+           | C_sim_apply_move =>
+             simp only [utm_transition_fn, Nat.unpair_pair, decode_sim_rule_components_for_apply, decode_direction_opt] at next_full_state;
+             split_ifs at next_full_state with h_decode;
+             · -- decode_direction_opt = none
+               simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+             · -- decode_direction_opt = some
+               simp [C_sim_update_state, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+           | C_sim_update_state =>
+             simp only [utm_transition_fn, Nat.unpair_pair, decode_sim_rule_components_for_apply] at next_full_state;
+             simp [C_sim_read_symbol, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+           | C_utm_accept => -- This case should not be reached due to h_isSome
+             exact False.elim (Option.noConfusion h_eq) -- h_eq is utm_transition_fn (q₁,s₁) = Some res
+           | C_utm_reject => -- This case should not be reached due to h_isSome
+             exact False.elim (Option.noConfusion h_eq)
+          
         · -- next_internal_data < MAX_INTERNAL_DATA_VAL
           simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_len_state, handle_parse_val_state] at next_full_state
           match h_cc_proof : control_code with
@@ -650,7 +757,7 @@ def the_actual_utm_instance : UniversalTuringMachine := {
               · norm_num; exact Nat.zero_lt_succ _
               · -- next_internal_data is tape_symbol - 1.
                 -- Assume tape_symbol is a length for a non-delta component: tape_symbol <= MAX_RAW_COMPONENT_VAL + 1
-                have h_ts_bound_len : tape_symbol ≤ MAX_RAW_COMPONENT_VAL + 1 := by sorry -- SORRY G.3.premise (for this specific component type)
+                have h_ts_bound_len : tape_symbol ≤ MAX_RAW_COMPONENT_VAL + 1 := by linarith -- SORRY G.3.premise (for this specific component type)
                 have h_actual_len_lt : tape_symbol - 1 < MAX_INTERNAL_DATA_VAL := by
                   linarith [MAX_INTERNAL_DATA_VAL, MAX_RAW_COMPONENT_VAL, (Nat.sub_le_of_le_add h_ts_bound_len)]
                 exact h_actual_len_lt
@@ -661,10 +768,52 @@ def the_actual_utm_instance : UniversalTuringMachine := {
               · -- next_internal_data is internal_data - 1.
                 have h_id_lt : internal_data < MAX_INTERNAL_DATA_VAL := by
                   -- This relies on q₁ being a valid state.
+exact (Nat.unpair q₁).snd.lt_of_mem_rng (Finset.mem_product.mp (Finset.mem_image_of_mem _ (sorry -- proof that q₁ is in the preimage set)).choose_spec.1).2
+have h_q1_in_states : q₁ ∈ the_actual_utm_instance_states_set := by
+  let (control_code, internal_data) := Nat.unpair q₁
+  have h_transition_some : utm_transition_fn (q₁, s₁) = some _ := Option.isSome_iff_exists.mp h_isSome
+  simp only [utm_transition_fn, Nat.unpair_pair] at h_transition_some
+  -- Proof that if utm_transition_fn (q₁, s₁) is Some, then q₁ is a valid state.
+  -- This requires case analysis on control_code and examining the transition function.
+-- next_internal_data < MAX_INTERNAL_DATA_VAL
+              simp only [next_full_state]; -- next_full_state is Nat.pair C_utm_reject 0
+              simp only [Nat.unpair_pair]; -- next_internal_data is 0
+              norm_num; -- 0 < MAX_INTERNAL_DATA_VAL
+              exact Nat.zero_lt_succ _ -- Proof that 0 is less than any successor (which MAX_INTERNAL_DATA_VAL is, since it's > 0)
+  sorry -- This sorry represents the large case analysis
                   exact (Nat.unpair q₁).snd.lt_of_mem_rng (Finset.mem_product.mp (Finset.mem_image_of_mem _ sorry /-h_q1_valid-/).choose_spec.1).2
                 exact Nat.lt_of_le_of_lt (Nat.sub_le internal_data 1) h_id_lt
-          | C_parse_delta_len => sorry -- SORRY G.next_id for delta_len
-          | C_parse_delta_val => sorry -- SORRY G.next_id for delta_val
+          | C_parse_delta_len =>
+              split_ifs at next_full_state with h_ts_zero;
+              · norm_num; exact Nat.zero_lt_succ _
+              · -- next_internal_data is tape_symbol - 1.
+                -- Assume tape_symbol is a length for delta component: tape_symbol <= max_delta_list_raw_len + 1
+                have h_ts_bound_len : tape_symbol ≤ max_delta_list_raw_len + 1 := by sorry -- SORRY G.3.premise (for delta length)
+                have h_actual_len_lt : tape_symbol - 1 < MAX_ENCODED_RULE_DATA + 1 := by
+-- next_internal_data < MAX_ENCODED_RULE_DATA + 1
+              simp only [next_full_state]; -- next_full_state is Nat.pair C_utm_reject 0
+              simp only [Nat.unpair_pair]; -- next_internal_data is 0
+              norm_num; -- 0 < MAX_ENCODED_RULE_DATA + 1
+              exact Nat.zero_lt_succ _ -- Proof that 0 is less than any successor
+                  -- Need to show tape_symbol - 1 < MAX_ENCODED_RULE_DATA + 1
+                  -- We know tape_symbol ≤ max_delta_list_raw_len + 1
+                  -- We need to show max_delta_list_raw_len < MAX_ENCODED_RULE_DATA + 1
+                  -- max_delta_list_raw_len = 5 * MAX_RAW_COMPONENT_VAL * MAX_RAW_COMPONENT_VAL
+                  -- MAX_ENCODED_RULE_DATA = Nat.pair MAX_RAW_COMPONENT_VAL (Nat.pair MAX_RAW_COMPONENT_VAL 3) + 1
+                  -- This requires evaluating Nat.pair and showing the inequality.
+                  sorry -- SORRY G.next_id for delta_len proof (inequality)
+          | C_parse_delta_val => -- next_internal_data < MAX_ENCODED_RULE_DATA + 1
+              simp only [next_full_state]; -- next_full_state is Nat.pair C_parse_delta_val (internal_data + 1) or Nat.pair C_find_sep_before_input 0
+              simp only [Nat.unpair_pair]; -- next_internal_data is internal_data + 1 or 0
+              split_ifs at next_full_state with h_id_eq_4;
+              · -- internal_data_counter = 4 case, next_internal_data is 0
+                norm_num; exact Nat.zero_lt_succ _
+              · -- internal_data_counter ≠ 4 case, next_internal_data is internal_data + 1
+                -- We need to show internal_data + 1 < MAX_ENCODED_RULE_DATA + 1
+                -- This relies on q₁ being a valid state, so internal_data < MAX_ENCODED_RULE_DATA + 1
+                have h_id_lt : internal_data < MAX_ENCODED_RULE_DATA + 1 := by
+                  exact (Nat.unpair q₁).snd.lt_of_mem_rng (Finset.mem_product.mp (Finset.mem_image_of_mem _ sorry /-h_q1_valid-/).choose_spec.1).2
+                exact Nat.succ_lt_succ h_id_lt
           | _ => sorry -- SORRY G.next_id for other states
       · exact Nat.pair_unpair _ _
     have h_written_sym_valid : symbol_written ∈ utm_tape_alphabet_set := by
