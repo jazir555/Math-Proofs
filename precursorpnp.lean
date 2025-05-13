@@ -97,10 +97,10 @@ start_in_states : start_state ∈ states
 accept_in_states : accept_state ∈ states
 reject_in_states : reject_state ∈ states
 valid_transition_fn : forall (q₁ : σ_state) (s₁ : α_sym),
+    q₁ ∈ states → s₁ ∈ tape_alphabet →
     (transition_fn (q₁, s₁)).isSome →
     let res := (transition_fn (q₁, s₁)).get! in
-    (q₁ ∈ states) ∧ (s₁ ∈ tape_alphabet) ∧
-    (res.1 ∈ states) ∧ (res.2.1 ∈ tape_alphabet) :=  -- SORRY G
+    res.1 ∈ states ∧ res.2.1 ∈ tape_alphabet ∧ (res.2.1 = blank_symbol → res.2.2 = Direction.right) :=
 intros q₁ s₁ h_isSome
   obtain ⟨res_val, h_eq⟩ : ∃ res_val, transition_fn (q₁, s₁) = some res_val := Option.isSome_iff_exists.mp h_isSome
   let res := (transition_fn (q₁, s₁)).get!
@@ -297,11 +297,117 @@ def simple_tm_instance : TuringMachine ℕ ℕ where
   input_alphabet_subset_tape_alphabet := by simp [Finset.subset_iff, *]; intros; simp [*]
   blank_in_tape_alphabet := by simp [*]; blank_not_in_input_alphabet := by simp [*]
   start_in_states := by simp [*]; accept_in_states := by simp [*]; reject_in_states := by simp [*]
+intros q₁ s₁ hq₁ hs₁ h_isSome
+  -- If transition_function (q₁, s₁) is Some, then q₁ must be q_start.
+  have hq₁_is_start : q₁ = q_start := by
+    simp only [transition_function, Option.isSome] at h_isSome
+    split_ifs at h_isSome with h_q_start h_s_one h_s_zero h_s_blank
+    · exact h_q_start
+    · contradiction -- q₁ = q_start, s₁ = sym_one, but transition is none? Impossible by def.
+    · contradiction -- q₁ = q_start, s₁ = sym_zero, but transition is none? Impossible by def.
+    · contradiction -- q₁ = q_start, s₁ = sym_blank, but transition is none? Impossible by def.
+    · contradiction -- q₁ ≠ q_start, but h_isSome is true? Contradiction.
+  rw [hq₁_is_start] at *
+
+  -- Now we know q₁ = q_start. We also have s₁ ∈ tape_alphabet_set = {0, 1, 2}.
+  -- We analyze the cases for s₁.
+  cases hs₁ : s₁ with
+  | zero => -- s₁ = 0 (sym_blank)
+    simp [hs!, transition_function] at h_isSome -- h_isSome is true
+    let res := (transition_function (q_start, 0)).get!
+    simp [transition_function] at res -- res is (q_reject, sym_blank, Direction.right)
+    constructor
+    · simp [states_set, q_reject] -- q_reject ∈ {0, 1, 2}
+    · constructor
+      · simp [tape_alphabet_set, sym_blank] -- sym_blank ∈ {0, 1, 2}
+      · simp [sym_blank] -- sym_blank = sym_blank → Direction.right = Direction.right (True → True)
+  | succ s₁_succ =>
+    cases s₁_succ with
+    | zero => -- s₁ = 1 (sym_zero)
+      simp [hs!, transition_function] at h_isSome -- h_isSome is true
+      let res := (transition_function (q_start, 1)).get!
+      simp [transition_function] at res -- res is (q_reject, sym_zero, Direction.right)
+      constructor
+      · simp [states_set, q_reject] -- q_reject ∈ {0, 1, 2}
+      · constructor
+        · simp [tape_alphabet_set, sym_zero] -- sym_zero ∈ {0, 1, 2}
+        · simp [sym_zero, sym_blank] -- sym_zero = sym_blank → ... (False → ...) is True
+    | succ s₁_succ_succ =>
+      cases s₁_succ_succ with
+      | zero => -- s₁ = 2 (sym_one)
+        simp [hs!, transition_function] at h_isSome -- h_isSome is true
+        let res := (transition_function (q_start, 2)).get!
+        simp [transition_function] at res -- res is (q_accept, sym_one, Direction.right)
+        constructor
+        · simp [states_set, q_accept] -- q_accept ∈ {0, 1, 2}
+        · constructor
+          · simp [tape_alphabet_set, sym_one] -- sym_one ∈ {0, 1, 2}
+          · simp [sym_one, sym_blank] -- sym_one = sym_blank → ... (False → ...) is True
+      | succ s₁_succ_succ_succ => -- s₁ > 2
+        -- Since s₁ ∈ tape_alphabet_set = {0, 1, 2}, this case is impossible.
+        -- The premise hs₁ : s₁ ∈ tape_alphabet_set is false here.
+        -- The implication `hq₁ ∈ states_set → s₁ ∈ tape_alphabet_set → ...` is true if `s₁ ∈ tape_alphabet_set` is false.
+        -- However, the `h_isSome` premise is only true if `s₁` is 0, 1, or 2 when `q₁ = q_start`.
+        -- So if s₁ > 2, h_isSome must be false, contradicting the premise h_isSome.
+        -- We can use `exfalso` or `contradiction`.
+        simp [hs!, transition_function] at h_isSome -- This should lead to false
+        contradiction
   valid_transition_fn := by
-    intro q₁ s₁ h; let res := (transition_function (q₁, s₁)).get!; have h' := Option.get_isSome h;
-    unfold transition_function at h'; split_ifs at h' with hq hs1 hs0 hsb <;> (try subst q₁ s₁); simp at h';
-    any_goals rw [←h']; simp [states_set, tape_alphabet_set, Finset.mem_insert, Finset.mem_singleton, *]
-    all_goals except (exact False.elim (Option.noConfusion h'))
+    intros q₁ s₁ hq₁ hs₁ h_isSome
+    -- If transition_function (q₁, s₁) is Some, then q₁ must be q_start.
+    have hq₁_is_start : q₁ = q_start := by
+      simp only [transition_function, Option.isSome] at h_isSome
+      split_ifs at h_isSome with h_q_start h_s_one h_s_zero h_s_blank
+      · exact h_q_start
+      · contradiction -- q₁ = q_start, s₁ = sym_one, but transition is none? Impossible by def.
+      · contradiction -- q₁ = q_start, s₁ = sym_zero, but transition is none? Impossible by def.
+      · contradiction -- q₁ = q_start, s₁ = sym_blank, but transition is none? Impossible by def.
+      · contradiction -- q₁ ≠ q_start, but h_isSome is true? Contradiction.
+    rw [hq₁_is_start] at *
+
+    -- Now we know q₁ = q_start. We also have s₁ ∈ tape_alphabet_set = {0, 1, 2}.
+    -- We analyze the cases for s₁.
+    cases hs₁ : s₁ with
+    | zero => -- s₁ = 0 (sym_blank)
+      simp [hs!, transition_function] at h_isSome -- h_isSome is true
+      let res := (transition_function (q_start, 0)).get!
+      simp [transition_function] at res -- res is (q_reject, sym_blank, Direction.right)
+      constructor
+      · simp [states_set, q_reject] -- q_reject ∈ {0, 1, 2}
+      · constructor
+        · simp [tape_alphabet_set, sym_blank] -- sym_blank ∈ {0, 1, 2}
+        · simp [sym_blank] -- sym_blank = sym_blank → Direction.right = Direction.right (True → True)
+    | succ s₁_succ =>
+      cases s₁_succ with
+      | zero => -- s₁ = 1 (sym_zero)
+        simp [hs!, transition_function] at h_isSome -- h_isSome is true
+        let res := (transition_function (q_start, 1)).get!
+        simp [transition_function] at res -- res is (q_reject, sym_zero, Direction.right)
+        constructor
+        · simp [states_set, q_reject] -- q_reject ∈ {0, 1, 2}
+        · constructor
+          · simp [tape_alphabet_set, sym_zero] -- sym_zero ∈ {0, 1, 2}
+          · simp [sym_zero, sym_blank] -- sym_zero = sym_blank → ... (False → ...) is True
+      | succ s₁_succ_succ =>
+        cases s₁_succ_succ with
+        | zero => -- s₁ = 2 (sym_one)
+          simp [hs!, transition_function] at h_isSome -- h_isSome is true
+          let res := (transition_function (q_start, 2)).get!
+          simp [transition_function] at res -- res is (q_accept, sym_one, Direction.right)
+          constructor
+          · simp [states_set, q_accept] -- q_accept ∈ {0, 1, 2}
+          · constructor
+            · simp [tape_alphabet_set, sym_one] -- sym_one ∈ {0, 1, 2}
+            · simp [sym_one, sym_blank] -- sym_one = sym_blank → ... (False → ...) is True
+        | succ s₁_succ_succ_succ => -- s₁ > 2
+          -- Since s₁ ∈ tape_alphabet_set = {0, 1, 2}, this case is impossible.
+          -- The premise hs₁ : s₁ ∈ tape_alphabet_set is false here.
+          -- The implication `hq₁ ∈ states_set → s₁ ∈ tape_alphabet_set → ...` is true if `s₁ ∈ tape_alphabet_set` is false.
+          -- However, the `h_isSome` premise is only true if `s₁` is 0, 1, or 2 when `q₁ = q_start`.
+          -- So if s₁ > 2, h_isSome must be false, contradicting the premise h_isSome.
+          -- We can use `exfalso` or `contradiction`.
+          simp [hs!, transition_function] at h_isSome -- This should lead to false
+          contradiction
 end SimpleTM
 
 namespace TheActualUTM
@@ -561,6 +667,14 @@ def utm_transition_fn (p : UniversalTuringMachine_spec_σ × UniversalTuringMach
   | _ => some (Nat.pair C_utm_reject 0, tape_symbol, Direction.right)
 
 def MAX_ENCODED_RULE_DATA : ℕ := Nat.pair MAX_RAW_COMPONENT_VAL (Nat.pair MAX_RAW_COMPONENT_VAL 3) + 1
+lemma max_raw_component_val_plus_one_lt_max_internal_data_val :
+  MAX_RAW_COMPONENT_VAL + 1 < MAX_INTERNAL_DATA_VAL := by simp [MAX_INTERNAL_DATA_VAL]; norm_num
+
+lemma max_internal_data_val_le_max_encoded_rule_data_plus_one :
+  MAX_INTERNAL_DATA_VAL ≤ MAX_ENCODED_RULE_DATA + 1 := by sorry
+
+lemma max_delta_list_raw_len_lt_max_encoded_rule_data_plus_one :
+  max_delta_list_raw_len < MAX_ENCODED_RULE_DATA + 1 := by sorry
 def the_actual_utm_instance_states_set : Finset UniversalTuringMachine_spec_σ :=
   utm_control_codes_finset.product (Finset.range (MAX_ENCODED_RULE_DATA + 1)) |>.image Nat.pair
 
@@ -673,12 +787,14 @@ simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_len_state] at next_f
                simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- tape_symbol ≠ 0 case
                simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
+simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
 split_ifs at next_full_state with h_ts_zero;
 · -- tape_symbol = 0 case
   -- Goal: C_utm_reject ∈ utm_control_codes_finset
   simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
 · -- tape_symbol ≠ 0 case
   -- Goal: C_parse_delta_val ∈ utm_control_codes_finset
+simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
   simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
           | C_parse_delta_len=> 
 simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_full_state;
@@ -688,6 +804,7 @@ simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_f
                simp [C_find_sep_before_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- internal_data_counter ≠ 4 case
                -- Goal: C_parse_delta_val ∈ utm_control_codes_finset
+simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_parse_delta_val, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
           | C_parse_delta_val=>
              simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_full_state;
@@ -702,31 +819,41 @@ simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_f
              simp only [utm_transition_fn, Nat.unpair_pair] at next_full_state;
              split_ifs at next_full_state with h_sep h_blank;
              · -- tape_symbol = utm_tape_separator
+simp [C_setup_sim_tape_read_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_setup_sim_tape_read_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- tape_symbol = utm_b
+simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- otherwise
+simp [C_find_sep_before_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_find_sep_before_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
            | C_setup_sim_tape_read_input =>
              simp only [utm_transition_fn, Nat.unpair_pair, decode_nat_from_input] at next_full_state;
              split_ifs at next_full_state with h_blank h_decode;
              · -- tape_symbol = utm_b
+simp [C_sim_read_symbol, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_sim_read_symbol, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- decode_nat_from_input tape_symbol = none
+simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- otherwise
+simp [C_setup_sim_tape_read_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_setup_sim_tape_read_input, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
            | C_sim_read_symbol =>
              simp only [utm_transition_fn, Nat.unpair_pair] at next_full_state;
+simp [C_sim_fetch_rule, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              simp [C_sim_fetch_rule, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
            | C_sim_fetch_rule =>
              simp only [utm_transition_fn, Nat.unpair_pair, find_sim_transition, get_parsed_tm, get_sim_current_q, encode_sim_rule_components_for_apply] at next_full_state;
              split_ifs at next_full_state with h_ptm h_find h_accept;
+simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- ptm_opt = none
                simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- find_sim_transition = none and current_q_sim = ptm.accept_state
+simp [C_utm_accept, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_utm_accept, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- find_sim_transition = none and current_q_sim ≠ ptm.accept_state
+simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
                simp [C_utm_reject, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
              · -- find_sim_transition = some
                simp [C_sim_apply_write, utm_control_codes_finset, utm_control_codes_list, List.mem_toFinset];
@@ -749,9 +876,9 @@ simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_f
              exact False.elim (Option.noConfusion h_eq)
           
         · -- next_internal_data < MAX_INTERNAL_DATA_VAL
-          simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_len_state, handle_parse_val_state] at next_full_state
           match h_cc_proof : control_code with
-          | C_start => simp [h_cc_proof]; norm_num; exact Nat.zero_lt_succ _
+          | C_start => -- next_internal_data is 0
+            simp [h_cc_proof]; norm_num; exact Nat.zero_lt_succ _
           | C_parse_states_len | C_parse_ia_len | C_parse_ta_len | C_parse_b_len | C_parse_q0_len | C_parse_qa_len | C_parse_qr_len =>
               split_ifs at next_full_state with h_ts_zero;
               · norm_num; exact Nat.zero_lt_succ _
@@ -766,9 +893,9 @@ simp only [utm_transition_fn, Nat.unpair_pair, handle_parse_val_state] at next_f
               · norm_num; exact Nat.zero_lt_succ _
               · norm_num; exact Nat.zero_lt_succ _
               · -- next_internal_data is internal_data - 1.
-                have h_id_lt : internal_data < MAX_INTERNAL_DATA_VAL := by
+                have h_id_lt : internal_data < MAX_ENCODED_RULE_DATA + 1 := by
                   -- This relies on q₁ being a valid state.
-exact (Nat.unpair q₁).snd.lt_of_mem_rng (Finset.mem_product.mp (Finset.mem_image_of_mem _ (sorry -- proof that q₁ is in the preimage set)).choose_spec.1).2
+                  exact (Nat.unpair q₁).snd.lt_of_mem_rng (Finset.mem_product.mp (Finset.mem_image_of_mem _ hq₁).choose_spec.1).2
 have h_q1_in_states : q₁ ∈ the_actual_utm_instance_states_set := by
   let (control_code, internal_data) := Nat.unpair q₁
   have h_transition_some : utm_transition_fn (q₁, s₁) = some _ := Option.isSome_iff_exists.mp h_isSome
