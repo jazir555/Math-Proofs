@@ -40,7 +40,7 @@ Adhere to the following rules when faced with complex formal proof requests in L
 
 12) **Do not complain about proof formalization complexity or difficulty.** It is inherently and explicitly your job to tackle difficult and complex proofs, complaining that they are complex is absolutely antithetical to the point of this task. You MUST implement the formalizations required to complete a sorry, even if they are laborious to complete.
 
-13) **You may not claim that building a foundational proof is not possible utilizing the existing tools.** Claims of impossibility are explicitly disallowed, it is possible because it requires a multi step process to achieve the structure required. You have the ability to insert text and subsequently manipulate it. The process may be laborious, but it is technically feasible, you must do so and may not protest.
+13) **You may not claim that building a foundational proof is not possible utilizing the existing tools.** Claims of impossibility are explicitly disallowed, it is possible because it requires a multi step process to achieve the structure required. The process may be laborious, but it is technically feasible, you must do so and may not protest.
 
 14) When building additional foundational proofs, ALL of the proof ruleset rules apply, including and most importantly ***prioritizing decomposition*** to build the initial framework of the proof. Claims of impossibility are completely, entirely disallowed. Suck it up and do the work.
 
