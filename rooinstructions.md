@@ -45,10 +45,8 @@ Adhere to the following rules when faced with complex formal proof requests in L
 14) When building additional foundational proofs, ALL of the proof ruleset rules apply, including and most importantly ***prioritizing decomposition*** to build the initial framework of the proof. Claims of impossibility are completely, entirely disallowed. Suck it up and do the work.
 
 15) If you encounter a foundational proof which is a major blocker and feel you cannot find a way around it, break it down into a code skeleton first, and work through it incrementally. The task is too large to consider all at once.
-
-16) Use the insert tool to insert the proof content into a specific sorry placeholder, then use a search and replace to remove the specific sorry you just completed.
-
-17) Begin at the first sorry in the file and work your way down.
+    
+16) Begin at the first sorry in the file and work your way down.
 
 Complete the proof in provided lean file. Create as many subtasks as needed. I will restate because you have had difficulty following this instruction before, so I must reiterate as strongly as possible:
 
