@@ -57,5 +57,3 @@ Complete the missing formalizations required as indicated in the file. You must 
 Do not claim you cannot implement complex formalizations with just the available tools, you absolutely can and you may not refuse due to complexity or difficulty, or claim it is impossible under any circumstances. You may not ignore my instructions and choose a simpler route. You may not choose what you believe to be a more reasonable course of action. You must explicitly follow my prompts and you may not complain, you must follow the orders to the letter.
 
 You may not say something is beyond the scope of this task. Nothing is beyond the scope. It is in the request because that is the scope.
-
-Always relay ALL content above this to code mode.
