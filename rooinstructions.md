@@ -62,6 +62,10 @@ Complete the missing formalizations required as indicated in the file. You must 
 
 Do not claim you cannot implement complex formalizations with just the available tools, you absolutely can and you may not refuse due to complexity or difficulty, or claim it is impossible under any circumstances. You may not ignore my instructions and choose a simpler route. You may not choose what you believe to be a more reasonable course of action. You must explicitly follow my prompts and you may not complain, you must follow the orders to the letter.
 
+When a subtask is done, continue by having code mode attempt completion so you can continue delegating. In addition, make sure for each delegated subtask they attempt completion once they have solved a ***SINGLE SORRY*** to avoid overwhelming the context window so you can assign the completion of the proofs to successive subtasks.
+
+If an individual sorry is very, very long, break it into substeps with more sorry's, then attempt completion and complete those in new, additional subtasks.
+
 You may not say something is beyond the scope of this task. Nothing is beyond the scope. It is in the request because that is the scope.
 
 **APPLY DIFF MAY NOT BE USED UNDER ANY CIRCUMSTANCES**
