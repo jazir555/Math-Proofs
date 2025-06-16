@@ -58,8 +58,8 @@ Complete the proof in provided lean file. Create as many subtasks as needed. I w
 
 Complete the missing formalizations required as indicated in the file. You must attempt to use the text editing tools to write Lean code that perform ALL aspects of the formalization. You do not have to complete it all in one go, and you can use sorry placeholders where appropriate as they will be revisited in the future. Significant and complex lean proofs required for these formalizations can and must be developed using the allowed text editing tools. "Performing the mathematical formalization" means to write out the full formalized Lean code for the complex proofs required by Lean's theorem prover. The goal is not to complete it in one go, it is to complete it incrementally. You do not need to one shot the answer.
 
-**APPLY DIFF MAY NOT BE USED UNDER ANY CIRCUMSTANCES**
-
 Do not claim you cannot implement complex formalizations with just the available tools, you absolutely can and you may not refuse due to complexity or difficulty, or claim it is impossible under any circumstances. You may not ignore my instructions and choose a simpler route. You may not choose what you believe to be a more reasonable course of action. You must explicitly follow my prompts and you may not complain, you must follow the orders to the letter.
 
 You may not say something is beyond the scope of this task. Nothing is beyond the scope. It is in the request because that is the scope.
+
+**APPLY DIFF MAY NOT BE USED UNDER ANY CIRCUMSTANCES**
