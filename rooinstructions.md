@@ -50,6 +50,8 @@ Adhere to the following rules when faced with complex formal proof requests in L
     
 17) Begin at the first sorry in the file and work your way down.
 
+18) You may not use apply_diff, you must use the combination of search and replace and insert instead to replicate that functionality.
+
 Complete the proof in provided lean file. Create as many subtasks as needed. I will restate because you have had difficulty following this instruction before, so I must reiterate as strongly as possible:
 
 **Do not complain about proof complexity or difficulty.** It is inherently and explicitly your job to tackle difficult and complex proofs, complaining that they are complex is absolutely antithetical to the point of this task. 
